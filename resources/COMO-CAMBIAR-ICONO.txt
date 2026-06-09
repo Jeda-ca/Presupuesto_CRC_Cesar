@@ -1,0 +1,23 @@
+ICONO DE LA APLICACION (.exe, barra de tareas, ventana)
+========================================================
+
+Para ponerle el icono oficial a la aplicacion:
+
+1. Cree o consiga el logo en formato .ico (icono de Windows), idealmente
+   de 256x256 px y multi-resolucion. Puede convertir un PNG a .ico en
+   herramientas en linea (por ejemplo, buscar "png to ico 256").
+
+2. Guarde ese archivo EXACTAMENTE con este nombre en esta carpeta:
+
+       resources/icon.ico
+
+3. Vuelva a generar el ejecutable:
+
+       npm run build:win
+
+   electron-builder detecta automaticamente resources/icon.ico y lo
+   incrusta en el .exe (icono del archivo, de la ventana y de la barra
+   de tareas). No hay que tocar ninguna configuracion.
+
+Si no coloca ningun icon.ico, la app usa el icono por defecto de Electron
+(funciona igual, solo cambia la imagen).
