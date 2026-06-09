@@ -1,4 +1,6 @@
 import type { DashboardResumen, EstadoEjecucion } from '@shared/ipc/contract'
+const logo = new URL('../assets/logo.png', import.meta.url).href
+
 
 const moneda = new Intl.NumberFormat('es-CO', {
   style: 'currency',
@@ -107,7 +109,7 @@ export function construirInformeHTML(resumen: DashboardResumen, meta: InformeMet
 </style></head>
 <body>
   <header>
-    <div class="logo">+</div>
+    <div class="logo"><img src="${logo}" alt="Logo" /></div>
     <div>
       <h1>${escapar(meta.titulo)}</h1>
       <p>${escapar(meta.entidad)}</p>

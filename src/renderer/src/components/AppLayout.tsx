@@ -3,6 +3,8 @@ import { useAppStore, type Vista } from '../store/appStore'
 import { Icono, type NombreIcono } from './ui/Icono'
 import { api, unwrap } from '../api/client'
 
+const logo = new URL('../assets/logo.png', import.meta.url).href
+
 const NAV: { vista: Vista; etiqueta: string; icono: NombreIcono }[] = [
   { vista: 'dashboard', etiqueta: 'Dashboard', icono: 'dashboard' },
   { vista: 'importar', etiqueta: 'Importar', icono: 'importar' },
@@ -54,7 +56,7 @@ export function AppLayout({ children }: { children: ReactNode }): JSX.Element {
       <aside className="flex w-64 shrink-0 flex-col bg-slate-900 text-slate-300">
         <div className="flex items-center gap-3 px-5 py-5">
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-crc-600 font-bold text-white">
-            +
+            <img src={logo} alt="Logo" className="h-full w-full object-contain" />
           </div>
           <div className="leading-tight">
             <p className="text-sm font-semibold text-white">Presupuesto</p>
