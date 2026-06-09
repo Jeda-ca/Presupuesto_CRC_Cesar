@@ -1,0 +1,27 @@
+appId: org.cruzrojacesar.presupuesto
+productName: Presupuesto CRC Cesar
+copyright: Copyright © 2026 Cruz Roja Colombiana Seccional Cesar
+
+directories:
+  buildResources: resources
+  output: release
+
+files:
+  - out/**/*
+  - package.json
+
+asarUnpack:
+  - resources/**
+
+win:
+  target:
+    - target: portable
+      arch:
+        - x64
+  artifactName: ${productName}-${version}-portable.${ext}
+
+portable:
+  unpackDirName: PresupuestoCRCCesar
+
+compression: maximum
+removePackageScripts: true
