@@ -21,12 +21,23 @@ import { api, unwrap } from '../api/client'
 import { useAppStore } from '../store/appStore'
 import { formatoMoneda, formatoCompacto, formatoPorcentaje, nombreMes } from '../lib/formato'
 import { ESTADO_META } from '../lib/estados'
+import type { Naturaleza } from '@shared/domain/types'
+
+type FiltroNaturaleza = 'todas' | Naturaleza
+
+const FILTROS: { valor: FiltroNaturaleza; etiqueta: string }[] = [
+  { valor: 'todas', etiqueta: 'Todas' },
+  { valor: 'ingreso', etiqueta: 'Ingresos' },
+  { valor: 'gasto', etiqueta: 'Gastos' },
+  { valor: 'costo', etiqueta: 'Costos' }
+]
 
 export function DashboardPage(): JSX.Element {
   const anio = useAppStore((s) => s.config?.anioActivo ?? new Date().getFullYear())
   const notificar = useAppStore((s) => s.notificar)
   const irA = useAppStore((s) => s.irA)
   const [periodo, setPeriodo] = useState<Periodo>(rangoAnio(anio))
+  const [naturaleza, setNaturaleza] = useState<FiltroNaturaleza>('todas')
   const [data, setData] = useState<DashboardResumen | null>(null)
   const [cargando, setCargando] = useState(false)
 
@@ -35,7 +46,12 @@ export function DashboardPage(): JSX.Element {
   useEffect(() => {
     let activo = true
     setCargando(true)
-    unwrap(api.dashboard.resumen(periodo))
+    unwrap(
+      api.dashboard.resumen({
+        ...periodo,
+        naturaleza: naturaleza === 'todas' ? null : naturaleza
+      })
+    )
       .then((r) => activo && setData(r))
       .catch((e: Error) => notificar('error', e.message))
       .finally(() => activo && setCargando(false))
@@ -43,7 +59,7 @@ export function DashboardPage(): JSX.Element {
       activo = false
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [periodo])
+  }, [periodo, naturaleza])
 
   const barData =
     data?.areas
@@ -66,7 +82,26 @@ export function DashboardPage(): JSX.Element {
       <EncabezadoPagina
         titulo="Dashboard"
         descripcion="Comparación entre lo presupuestado y lo ejecutado en el período seleccionado."
-        acciones={<PeriodoSelector periodo={periodo} anio={anio} onCambio={setPeriodo} />}
+        acciones={
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex rounded-lg border border-slate-300 bg-white p-0.5">
+              {FILTROS.map((f) => (
+                <button
+                  key={f.valor}
+                  onClick={() => setNaturaleza(f.valor)}
+                  className={`h-8 rounded-md px-2.5 text-xs font-medium transition-colors ${
+                    naturaleza === f.valor
+                      ? 'bg-crc-600 text-white'
+                      : 'text-slate-600 hover:bg-slate-100'
+                  }`}
+                >
+                  {f.etiqueta}
+                </button>
+              ))}
+            </div>
+            <PeriodoSelector periodo={periodo} anio={anio} onCambio={setPeriodo} />
+          </div>
+        }
       />
 
       {!data || (!data.hayDatos && data.areas.length === 0) ? (
@@ -117,10 +152,15 @@ export function DashboardPage(): JSX.Element {
                 </span>
               )
             )}
-            {data.ejecutadoSinArea !== 0 && (
-              <span className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-500">
+            {(data.ejecutadoSinArea !== 0 || data.cuentasSinAsignar > 0) && (
+              <button
+                onClick={() => irA('areas')}
+                title="Asignar cuentas a un área"
+                className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-100 px-3 py-1 text-xs font-medium text-slate-500 hover:border-crc-300 hover:bg-crc-50 hover:text-crc-700"
+              >
                 Sin área: {formatoMoneda(data.ejecutadoSinArea)}
-              </span>
+                {data.cuentasSinAsignar > 0 && ` · ${data.cuentasSinAsignar} cuentas`}
+              </button>
             )}
           </div>
 

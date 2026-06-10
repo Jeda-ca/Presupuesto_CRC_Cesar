@@ -13,6 +13,7 @@ import type {
   GuardarPresupuestoInput,
   ActualizarConfiguracionInput,
   PeriodoQuery,
+  ResumenQuery,
   DetalleAreaQuery,
   MovimientosQuery
 } from '../schemas/dto'
@@ -103,6 +104,7 @@ export interface DashboardResumen {
   totalDisponible: number
   porcentaje: number
   ejecutadoSinArea: number
+  cuentasSinAsignar: number
   numMovimientos: number
   hayDatos: boolean
   areas: AreaEjecucion[]
@@ -251,7 +253,7 @@ export interface Api {
     eliminar(id: string): Promise<Result<{ movimientosEliminados: number }>>
   }
   dashboard: {
-    resumen(query: PeriodoQuery): Promise<Result<DashboardResumen>>
+    resumen(query: ResumenQuery): Promise<Result<DashboardResumen>>
     detalleArea(query: DetalleAreaQuery): Promise<Result<AreaDetalle>>
   }
   movimientos: {

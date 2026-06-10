@@ -92,6 +92,23 @@ describe('Flujo completo backend (import -> área -> presupuesto -> dashboard ->
     expect(vac!.estado).toBe('excedido')
   })
 
+  it('la serie mensual y "sin área" son consistentes con los KPI (solo áreas)', () => {
+    const resumen = dashboardService.resumen(Q1)
+    const vac = resumen.areas.find((a) => a.areaId === areaId)!
+    const sumaSerie = resumen.serieMensual.reduce((t, s) => t + s.ejecutado, 0)
+    expect(sumaSerie).toBeCloseTo(vac.ejecutado, 1)
+    expect(resumen.cuentasSinAsignar).toBe(16)
+    expect(resumen.ejecutadoSinArea).toBeCloseTo(43694160.6, 1)
+  })
+
+  it('filtra el dashboard por naturaleza', () => {
+    const soloGasto = dashboardService.resumen({ ...Q1, naturaleza: 'gasto' })
+    expect(soloGasto.areas).toHaveLength(0)
+    const soloIngreso = dashboardService.resumen({ ...Q1, naturaleza: 'ingreso' })
+    expect(soloIngreso.areas).toHaveLength(1)
+    expect(soloIngreso.totalEjecutado).toBe(4381000)
+  })
+
   it('detalle del área: cuentas, terceros y movimientos', () => {
     const det = dashboardService.detalleArea({ areaId, ...Q1 })
     expect(det.ejecutado).toBe(4381000)

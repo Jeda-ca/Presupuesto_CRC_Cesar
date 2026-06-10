@@ -48,6 +48,10 @@ export const periodoQuerySchema = z.object({
   hasta: z.string()
 })
 
+export const resumenQuerySchema = periodoQuerySchema.extend({
+  naturaleza: naturalezaSchema.nullish()
+})
+
 export const detalleAreaQuerySchema = z.object({
   areaId: z.string().min(1),
   desde: z.string(),
@@ -69,5 +73,6 @@ export type AsignarCuentaAreaInput = z.infer<typeof asignarCuentaAreaSchema>
 export type GuardarPresupuestoInput = z.infer<typeof guardarPresupuestoSchema>
 export type ActualizarConfiguracionInput = z.infer<typeof actualizarConfiguracionSchema>
 export type PeriodoQuery = z.infer<typeof periodoQuerySchema>
+export type ResumenQuery = z.infer<typeof resumenQuerySchema>
 export type DetalleAreaQuery = z.infer<typeof detalleAreaQuerySchema>
 export type MovimientosQuery = z.infer<typeof movimientosQuerySchema>

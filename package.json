@@ -9,14 +9,15 @@
   "scripts": {
     "dev": "electron-vite dev",
     "start": "electron-vite preview",
-    "build": "electron-vite build",
+    "sync-assets": "node -e \"const fs=require('fs');const s='src/renderer/src/assets/logo.png';if(fs.existsSync(s))fs.copyFileSync(s,'resources/logo.png')\"",
+    "build": "npm run sync-assets && electron-vite build",
     "typecheck:node": "tsc --noEmit -p tsconfig.node.json --composite false",
     "typecheck:web": "tsc --noEmit -p tsconfig.web.json --composite false",
     "typecheck": "npm run typecheck:node && npm run typecheck:web",
     "lint": "eslint . --ext .ts,.tsx",
     "format": "prettier --write \"src/**/*.{ts,tsx,css}\"",
     "test": "vitest run",
-    "build:win": "npm run typecheck && electron-vite build && electron-builder --win --config electron-builder.yml"
+    "build:win": "npm run typecheck && npm run sync-assets && electron-vite build && electron-builder --win --config electron-builder.yml"
   },
   "dependencies": {
     "recharts": "^2.15.0",

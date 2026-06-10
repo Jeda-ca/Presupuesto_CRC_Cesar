@@ -55,7 +55,7 @@ export function AppLayout({ children }: { children: ReactNode }): JSX.Element {
     <div className="flex h-full">
       <aside className="flex w-64 shrink-0 flex-col bg-slate-900 text-slate-300">
         <div className="flex items-center gap-3 px-5 py-5">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-crc-600 font-bold text-white">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg font-bold text-white">
             <img src={logo} alt="Logo" className="h-full w-full object-contain" />
           </div>
           <div className="leading-tight">

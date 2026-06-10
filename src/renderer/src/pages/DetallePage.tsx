@@ -11,6 +11,8 @@ import { useAppStore } from '../store/appStore'
 import { formatoMoneda, formatoPorcentaje, formatoFechaISO } from '../lib/formato'
 import { ESTADO_META } from '../lib/estados'
 
+const MAX_FILAS_MOVIMIENTOS = 500
+
 export function DetallePage(): JSX.Element {
   const anio = useAppStore((s) => s.config?.anioActivo ?? new Date().getFullYear())
   const notificar = useAppStore((s) => s.notificar)
@@ -225,7 +227,7 @@ export function DetallePage(): JSX.Element {
                       </td>
                     </tr>
                   ) : (
-                    movimientos.map((m) => (
+                    movimientos.slice(0, MAX_FILAS_MOVIMIENTOS).map((m) => (
                       <tr key={m.id} className="border-b border-slate-50 last:border-0">
                         <td className="whitespace-nowrap px-5 py-2 text-slate-500">
                           {formatoFechaISO(m.fecha)}
@@ -247,6 +249,12 @@ export function DetallePage(): JSX.Element {
                 </tbody>
               </table>
             </div>
+            {movimientos.length > MAX_FILAS_MOVIMIENTOS && (
+              <p className="border-t border-slate-100 px-5 py-2.5 text-xs text-slate-400">
+                Mostrando los primeros {MAX_FILAS_MOVIMIENTOS} de {movimientos.length} movimientos.
+                Seleccione una cuenta o acote el período para ver menos registros.
+              </p>
+            )}
           </Tarjeta>
         </div>
       )}

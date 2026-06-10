@@ -11,6 +11,7 @@ function resumenBase(): DashboardResumen {
     totalDisponible: 400000,
     porcentaje: 0.6,
     ejecutadoSinArea: 0,
+    cuentasSinAsignar: 0,
     numMovimientos: 10,
     hayDatos: true,
     areas: [
@@ -49,5 +50,17 @@ describe('construirInformeHTML', () => {
     const html = construirInformeHTML(resumen, meta)
     expect(html).not.toContain('<script>alert(1)</script>')
     expect(html).toContain('&lt;script&gt;')
+  })
+
+  it('incrusta el logo como data URI cuando se proporciona', () => {
+    const dataUri = 'data:image/png;base64,AAAA'
+    const html = construirInformeHTML(resumenBase(), { ...meta, logoDataUri: dataUri })
+    expect(html).toContain(`<img src="${dataUri}"`)
+    expect(html).toContain('logo con-img')
+  })
+
+  it('usa el distintivo por defecto cuando no hay logo', () => {
+    const html = construirInformeHTML(resumenBase(), meta)
+    expect(html).not.toContain('<img src="data:image')
   })
 })

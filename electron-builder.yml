@@ -10,8 +10,9 @@ files:
   - out/**/*
   - package.json
 
-asarUnpack:
-  - resources/**
+extraResources:
+  - from: resources/logo.png
+    to: logo.png
 
 win:
   target:

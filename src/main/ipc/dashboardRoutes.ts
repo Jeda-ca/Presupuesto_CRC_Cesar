@@ -1,6 +1,6 @@
 import { IPC_CHANNELS } from '@shared/ipc/contract'
 import {
-  periodoQuerySchema,
+  resumenQuerySchema,
   detalleAreaQuerySchema,
   movimientosQuerySchema
 } from '@shared/schemas/dto'
@@ -9,7 +9,7 @@ import { movimientoService } from '../services/movimientoService'
 import { handle } from './helpers'
 
 export function registrarDashboardRoutes(): void {
-  handle(IPC_CHANNELS.dashboard.resumen, periodoQuerySchema, (query) =>
+  handle(IPC_CHANNELS.dashboard.resumen, resumenQuerySchema, (query) =>
     dashboardService.resumen(query)
   )
   handle(IPC_CHANNELS.dashboard.detalleArea, detalleAreaQuerySchema, (query) =>

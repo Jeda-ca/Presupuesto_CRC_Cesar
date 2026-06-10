@@ -8,7 +8,7 @@ import type {
   CuentaEjecucion,
   TerceroEjecucion
 } from '@shared/ipc/contract'
-import type { PeriodoQuery, DetalleAreaQuery } from '@shared/schemas/dto'
+import type { ResumenQuery, DetalleAreaQuery } from '@shared/schemas/dto'
 import { ejecutadoMovimiento, naturalezaDeCuenta } from '@shared/domain/puc'
 import { configRepo } from '../repositories/configRepo'
 import { areaRepo } from '../repositories/areaRepo'
@@ -23,8 +23,9 @@ import {
 } from '../lib/calculoPresupuesto'
 
 export const dashboardService = {
-  resumen(query: PeriodoQuery): DashboardResumen {
+  resumen(query: ResumenQuery): DashboardResumen {
     const { desde, hasta } = query
+    const filtro = query.naturaleza ?? null
     const anio = Number.parseInt(desde.slice(0, 4), 10) || new Date().getFullYear()
     const cfg = configRepo.obtener()
 
@@ -34,14 +35,10 @@ export const dashboardService = {
 
     const movimientos = movimientoRepo.listarEntre(desde, hasta)
     const ejecPorCuenta = new Map<string, number>()
-    const ejecPorMes = new Array<number>(12).fill(0)
-
     for (const mov of movimientos) {
       const naturaleza = naturalezaPorCuenta.get(mov.cuenta) ?? naturalezaDeCuenta(mov.cuenta)
       const valor = ejecutadoMovimiento(naturaleza, mov.debito, mov.credito)
       ejecPorCuenta.set(mov.cuenta, (ejecPorCuenta.get(mov.cuenta) ?? 0) + valor)
-      const m = indiceMes(mov.fecha)
-      if (m >= 0) ejecPorMes[m] += valor
     }
 
     const presupuestos = presupuestoRepo.listarPorAnio(anio)
@@ -60,20 +57,35 @@ export const dashboardService = {
       sin_presupuesto: 0
     }
 
-    const areas: AreaEjecucion[] = areaRepo.listar().map((area) => {
+    const areasFiltradas = areaRepo
+      .listar()
+      .filter((area) => !filtro || area.naturaleza === filtro)
+
+    // Conjunto de cuentas que pertenecen a las áreas mostradas (para la serie mensual)
+    const codigosEnAreas = new Set<string>()
+    const presupuestoPorMes = new Array<number>(12).fill(0)
+
+    const areas: AreaEjecucion[] = areasFiltradas.map((area) => {
       const cuentasArea = cuentaRepo.listarPorArea(area.id)
+      for (const c of cuentasArea) codigosEnAreas.add(c.codigo)
       const ejecutado = cuentasArea.reduce((t, c) => t + (ejecPorCuenta.get(c.codigo) ?? 0), 0)
 
       const presupuestoArea = presArea.get(area.id)
-      let presupuesto: number
       if (presupuestoArea) {
-        presupuesto = presupuestoEnPeriodo(presupuestoArea.meses, anio, desde, hasta)
+        for (let m = 0; m < 12; m++) presupuestoPorMes[m] += presupuestoArea.meses[m] ?? 0
       } else {
-        presupuesto = cuentasArea.reduce((t, c) => {
+        for (const c of cuentasArea) {
           const pc = presCuenta.get(c.codigo)
-          return t + (pc ? presupuestoEnPeriodo(pc.meses, anio, desde, hasta) : 0)
-        }, 0)
+          if (pc) for (let m = 0; m < 12; m++) presupuestoPorMes[m] += pc.meses[m] ?? 0
+        }
       }
+
+      const presupuesto = presupuestoArea
+        ? presupuestoEnPeriodo(presupuestoArea.meses, anio, desde, hasta)
+        : cuentasArea.reduce((t, c) => {
+            const pc = presCuenta.get(c.codigo)
+            return t + (pc ? presupuestoEnPeriodo(pc.meses, anio, desde, hasta) : 0)
+          }, 0)
 
       const porcentaje = presupuesto > 0 ? ejecutado / presupuesto : 0
       const estado = calcularEstado(presupuesto, ejecutado, cfg.umbralRiesgo, cfg.umbralBajoUso)
@@ -95,23 +107,25 @@ export const dashboardService = {
 
     areas.sort((a, b) => b.ejecutado - a.ejecutado)
 
-    const codigosConArea = new Set(cuentas.filter((c) => c.areaId !== null).map((c) => c.codigo))
-    let ejecutadoSinArea = 0
-    for (const [codigo, valor] of ejecPorCuenta) {
-      if (!codigosConArea.has(codigo)) ejecutadoSinArea += valor
+    // Serie mensual: solo movimientos de las áreas mostradas (consistente con los KPI)
+    const ejecPorMes = new Array<number>(12).fill(0)
+    let movimientosEnAreas = 0
+    for (const mov of movimientos) {
+      if (!codigosEnAreas.has(mov.cuenta)) continue
+      movimientosEnAreas++
+      const naturaleza = naturalezaPorCuenta.get(mov.cuenta) ?? naturalezaDeCuenta(mov.cuenta)
+      const m = indiceMes(mov.fecha)
+      if (m >= 0) ejecPorMes[m] += ejecutadoMovimiento(naturaleza, mov.debito, mov.credito)
     }
 
-    const presupuestoPorMes = new Array<number>(12).fill(0)
-    for (const area of areaRepo.listar()) {
-      const pa = presArea.get(area.id)
-      if (pa) {
-        for (let m = 0; m < 12; m++) presupuestoPorMes[m] += pa.meses[m] ?? 0
-      } else {
-        for (const c of cuentaRepo.listarPorArea(area.id)) {
-          const pc = presCuenta.get(c.codigo)
-          if (pc) for (let m = 0; m < 12; m++) presupuestoPorMes[m] += pc.meses[m] ?? 0
-        }
-      }
+    // Cuentas sin área (opcionalmente filtradas por naturaleza)
+    let ejecutadoSinArea = 0
+    let cuentasSinAsignar = 0
+    for (const c of cuentas) {
+      if (c.areaId !== null) continue
+      if (filtro && c.naturaleza !== filtro) continue
+      cuentasSinAsignar++
+      ejecutadoSinArea += ejecPorCuenta.get(c.codigo) ?? 0
     }
 
     const serieMensual: SerieMes[] = mesesEnPeriodo(anio, desde, hasta).map((m) => ({
@@ -131,7 +145,8 @@ export const dashboardService = {
       totalDisponible: totalPresupuesto - totalEjecutado,
       porcentaje: totalPresupuesto > 0 ? totalEjecutado / totalPresupuesto : 0,
       ejecutadoSinArea,
-      numMovimientos: movimientos.length,
+      cuentasSinAsignar,
+      numMovimientos: movimientosEnAreas,
       hayDatos: movimientos.length > 0,
       areas,
       serieMensual,

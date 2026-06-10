@@ -1,6 +1,4 @@
 import type { DashboardResumen, EstadoEjecucion } from '@shared/ipc/contract'
-const logo = new URL('../assets/logo.png', import.meta.url).href
-
 
 const moneda = new Intl.NumberFormat('es-CO', {
   style: 'currency',
@@ -37,6 +35,7 @@ export interface InformeMeta {
   titulo: string
   entidad: string
   generadoEn: string
+  logoDataUri?: string
 }
 
 export function construirInformeHTML(resumen: DashboardResumen, meta: InformeMeta): string {
@@ -83,7 +82,9 @@ export function construirInformeHTML(resumen: DashboardResumen, meta: InformeMet
   * { box-sizing: border-box; }
   body { font-family: 'Segoe UI', Arial, sans-serif; color: #1e293b; margin: 0; padding: 32px 36px; font-size: 12px; }
   header { display: flex; align-items: center; gap: 14px; border-bottom: 3px solid #d7261e; padding-bottom: 14px; margin-bottom: 18px; }
-  .logo { width: 40px; height: 40px; background: #d7261e; color: #fff; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 26px; font-weight: 700; }
+  .logo { width: 40px; height: 40px; background: #d7261e; color: #fff; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 26px; font-weight: 700; overflow: hidden; }
+  .logo.con-img { background: #fff; }
+  .logo img { width: 100%; height: 100%; object-fit: contain; }
   header h1 { font-size: 18px; margin: 0; }
   header p { margin: 2px 0 0; color: #64748b; font-size: 11px; }
   .periodo { margin-left: auto; text-align: right; color: #475569; font-size: 11px; }
@@ -109,7 +110,9 @@ export function construirInformeHTML(resumen: DashboardResumen, meta: InformeMet
 </style></head>
 <body>
   <header>
-    <div class="logo"><img src="${logo}" alt="Logo" /></div>
+    <div class="logo${meta.logoDataUri ? ' con-img' : ''}">${
+      meta.logoDataUri ? `<img src="${meta.logoDataUri}" alt="Logo" />` : '+'
+    }</div>
     <div>
       <h1>${escapar(meta.titulo)}</h1>
       <p>${escapar(meta.entidad)}</p>

@@ -1,5 +1,6 @@
 import { app, dialog, BrowserWindow } from 'electron'
-import { writeFile, unlink } from 'node:fs/promises'
+import { writeFile, unlink, readFile } from 'node:fs/promises'
+import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import type { PeriodoQuery } from '@shared/schemas/dto'
@@ -10,6 +11,25 @@ const ENTIDAD = 'Cruz Roja Colombiana Seccional Cesar'
 
 function nombreSugerido(query: PeriodoQuery): string {
   return `Informe-Presupuesto-${query.desde}_a_${query.hasta}.pdf`
+}
+
+/**
+ * Lee el logo institucional y lo devuelve como data URI base64 para incrustarlo
+ * en el HTML del informe. Funciona en empaquetado (process.resourcesPath) y en
+ * desarrollo (carpeta resources del proyecto). Si no existe, devuelve undefined
+ * y el informe usa el distintivo por defecto.
+ */
+async function logoComoDataUri(): Promise<string | undefined> {
+  const ruta = app.isPackaged
+    ? join(process.resourcesPath, 'logo.png')
+    : join(app.getAppPath(), 'resources', 'logo.png')
+  if (!existsSync(ruta)) return undefined
+  try {
+    const datos = await readFile(ruta)
+    return `data:image/png;base64,${datos.toString('base64')}`
+  } catch {
+    return undefined
+  }
 }
 
 async function renderizarPDF(html: string): Promise<Buffer> {
@@ -50,7 +70,8 @@ export const reporteService = {
     const html = construirInformeHTML(resumen, {
       titulo: 'Informe de ejecución presupuestal',
       entidad: ENTIDAD,
-      generadoEn: new Date().toLocaleString('es-CO')
+      generadoEn: new Date().toLocaleString('es-CO'),
+      logoDataUri: await logoComoDataUri()
     })
 
     const pdf = await renderizarPDF(html)
