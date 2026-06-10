@@ -9,7 +9,7 @@ import { PeriodoSelector, rangoAnio, type Periodo } from '../components/PeriodoS
 import { api, unwrap } from '../api/client'
 import { useAppStore } from '../store/appStore'
 import { formatoMoneda, formatoPorcentaje, formatoFechaISO } from '../lib/formato'
-import { ESTADO_META } from '../lib/estados'
+import { estadoMeta, kpiDisponible } from '../lib/estados'
 
 const MAX_FILAS_MOVIMIENTOS = 500
 
@@ -65,6 +65,11 @@ export function DetallePage(): JSX.Element {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [areaId, periodo, cuentaSel])
 
+  const kpiDispDetalle = kpiDisponible(
+    detalle ? (detalle.naturaleza === 'ingreso' ? 'ingreso' : 'egreso') : null,
+    detalle?.disponible ?? 0
+  )
+
   return (
     <div>
       <EncabezadoPagina
@@ -105,14 +110,21 @@ export function DetallePage(): JSX.Element {
               detalle={`${detalle.numMovimientos} movimientos`}
             />
             <KpiCard
-              titulo="% Ejecución"
+              titulo={detalle.naturaleza === 'ingreso' ? '% De la meta' : '% Ejecución'}
               valor={formatoPorcentaje(detalle.porcentaje)}
-              acento={detalle.estado === 'excedido' ? 'text-red-600' : 'text-slate-800'}
+              acento={
+                detalle.estado === 'excedido'
+                  ? 'text-red-600'
+                  : detalle.estado === 'meta_superada'
+                    ? 'text-emerald-600'
+                    : 'text-slate-800'
+              }
             />
             <KpiCard
-              titulo="Disponible"
-              valor={formatoMoneda(detalle.disponible)}
-              acento={detalle.disponible < 0 ? 'text-red-600' : 'text-emerald-600'}
+              titulo={kpiDispDetalle.titulo}
+              valor={formatoMoneda(kpiDispDetalle.valor)}
+              detalle={kpiDispDetalle.detalle}
+              acento={kpiDispDetalle.acento}
             />
           </div>
 
@@ -144,7 +156,7 @@ export function DetallePage(): JSX.Element {
                 </thead>
                 <tbody>
                   {detalle.cuentas.map((c) => {
-                    const meta = ESTADO_META[c.estado]
+                    const meta = estadoMeta(c.estado, c.naturaleza)
                     return (
                       <tr
                         key={c.codigo}

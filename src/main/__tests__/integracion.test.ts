@@ -38,6 +38,18 @@ describe('Flujo completo backend (import -> área -> presupuesto -> dashboard ->
     expect(preview.cuentasNuevas.length).toBe(18)
   })
 
+  it('detecta las sedes por prefijo del centro de costo', () => {
+    const preview = importService.previsualizar(fixture)
+    const prefijos = preview.sedes.map((s) => s.prefijo)
+    expect(prefijos).toContain('0001')
+    expect(prefijos).toContain('0002')
+    const valledupar = preview.sedes.find((s) => s.prefijo === '0001')!
+    expect(valledupar.nombre).toBe('Valledupar')
+    const total = preview.sedes.reduce((t, s) => t + s.movimientos, 0)
+    expect(total).toBe(preview.totalMovimientos)
+    importService.descartar(preview.token)
+  })
+
   it('confirma la importación y crea cuentas y movimientos', () => {
     const preview = importService.previsualizar(fixture)
     const r = importService.confirmar(preview.token)
@@ -53,6 +65,21 @@ describe('Flujo completo backend (import -> área -> presupuesto -> dashboard ->
     const r = importService.confirmar(preview.token)
     expect(r.insertados).toBe(0)
     expect(r.actualizados).toBe(preview.totalMovimientos)
+  })
+
+  it('importar filtrando por sede solo procesa esa sede', () => {
+    const preview = importService.previsualizar(fixture)
+    const aguachica = preview.sedes.find((s) => s.prefijo === '0002')!
+    const r = importService.confirmar(preview.token, ['0002'])
+    expect(r.insertados + r.actualizados).toBe(aguachica.movimientos)
+  })
+
+  it('rechaza confirmar cuando la sede seleccionada no tiene movimientos', () => {
+    const preview = importService.previsualizar(fixture)
+    expect(() => importService.confirmar(preview.token, ['9999'])).toThrow(
+      /No hay movimientos/
+    )
+    importService.descartar(preview.token)
   })
 
   it('crea un área de Vacunación y le asigna sus cuentas', () => {
@@ -89,7 +116,10 @@ describe('Flujo completo backend (import -> área -> presupuesto -> dashboard ->
     expect(vac!.ejecutado).toBe(4381000)
     expect(vac!.presupuesto).toBe(300000)
     expect(vac!.disponible).toBe(-4081000)
-    expect(vac!.estado).toBe('excedido')
+    // Es un área de ingresos: superar la meta es positivo, no "excedido"
+    expect(vac!.estado).toBe('meta_superada')
+    expect(resumen.conteoEstados.meta_superada).toBe(1)
+    expect(resumen.conteoEstados.excedido).toBe(0)
   })
 
   it('la serie mensual y "sin área" son consistentes con los KPI (solo áreas)', () => {

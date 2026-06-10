@@ -56,6 +56,7 @@ export const importacionSchema = z.object({
   periodoInicio: z.string().nullable(),
   periodoFin: z.string().nullable(),
   totalRegistros: z.number().int().nonnegative(),
+  sedes: z.array(z.string()).default([]),
   fechaCarga: z.string()
 })
 

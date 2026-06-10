@@ -16,6 +16,7 @@ export type NombreIcono =
   | 'alerta'
   | 'cerrar'
   | 'chevron'
+  | 'check'
 
 const PATHS: Record<NombreIcono, JSX.Element> = {
   dashboard: <path d="M3 13h8V3H3v10Zm0 8h8v-6H3v6Zm10 0h8V11h-8v10Zm0-18v6h8V3h-8Z" />,
@@ -34,7 +35,8 @@ const PATHS: Record<NombreIcono, JSX.Element> = {
   eliminar: <path d="M4 7h16M9 7V4h6v3m-7 0v13h8V7M10 11v6M14 11v6" />,
   alerta: <path d="M12 3 2 21h20L12 3Zm0 6v6m0 3v.01" />,
   cerrar: <path d="M6 6l12 12M18 6 6 18" />,
-  chevron: <path d="m9 6 6 6-6 6" />
+  chevron: <path d="m9 6 6 6-6 6" />,
+  check: <path d="m5 13 4 4L19 7" />
 }
 
 export function Icono({

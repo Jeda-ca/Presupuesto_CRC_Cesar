@@ -53,6 +53,7 @@ export const dashboardService = {
       normal: 0,
       en_riesgo: 0,
       excedido: 0,
+      meta_superada: 0,
       bajo_uso: 0,
       sin_presupuesto: 0
     }
@@ -88,7 +89,13 @@ export const dashboardService = {
           }, 0)
 
       const porcentaje = presupuesto > 0 ? ejecutado / presupuesto : 0
-      const estado = calcularEstado(presupuesto, ejecutado, cfg.umbralRiesgo, cfg.umbralBajoUso)
+      const estado = calcularEstado(
+        presupuesto,
+        ejecutado,
+        cfg.umbralRiesgo,
+        cfg.umbralBajoUso,
+        area.naturaleza
+      )
       conteoEstados[estado]++
 
       return {
@@ -212,7 +219,13 @@ export const dashboardService = {
           ejecutado,
           disponible: presupuesto - ejecutado,
           porcentaje: presupuesto > 0 ? ejecutado / presupuesto : 0,
-          estado: calcularEstado(presupuesto, ejecutado, cfg.umbralRiesgo, cfg.umbralBajoUso),
+          estado: calcularEstado(
+            presupuesto,
+            ejecutado,
+            cfg.umbralRiesgo,
+            cfg.umbralBajoUso,
+            c.naturaleza
+          ),
           numMovimientos: movsPorCuenta.get(c.codigo) ?? 0
         }
       })
@@ -252,7 +265,13 @@ export const dashboardService = {
       ejecutado,
       disponible: presupuesto - ejecutado,
       porcentaje: presupuesto > 0 ? ejecutado / presupuesto : 0,
-      estado: calcularEstado(presupuesto, ejecutado, cfg.umbralRiesgo, cfg.umbralBajoUso),
+      estado: calcularEstado(
+        presupuesto,
+        ejecutado,
+        cfg.umbralRiesgo,
+        cfg.umbralBajoUso,
+        area.naturaleza
+      ),
       numMovimientos: movimientos.length,
       cuentas: cuentasEjecucion,
       topTerceros,

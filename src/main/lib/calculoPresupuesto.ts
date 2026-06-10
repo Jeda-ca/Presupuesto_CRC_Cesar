@@ -1,18 +1,30 @@
 import type { EstadoEjecucion } from '@shared/ipc/contract'
+import type { Naturaleza } from '@shared/domain/types'
 
 function pad2(n: number): string {
   return String(n).padStart(2, '0')
 }
 
-/** Clasifica la ejecución frente al presupuesto según los umbrales configurados. */
+/**
+ * Clasifica la ejecución frente al presupuesto según los umbrales configurados
+ * y la naturaleza. Para ingresos el presupuesto es una meta: superarla es
+ * positivo (meta_superada) y el caso de alerta es el recaudo bajo. Para
+ * gastos/costos el presupuesto es un límite: superarlo es excedido.
+ */
 export function calcularEstado(
   presupuesto: number,
   ejecutado: number,
   umbralRiesgo: number,
-  umbralBajoUso: number
+  umbralBajoUso: number,
+  naturaleza: Naturaleza
 ): EstadoEjecucion {
   if (presupuesto <= 0) return 'sin_presupuesto'
   const porcentaje = ejecutado / presupuesto
+  if (naturaleza === 'ingreso') {
+    if (ejecutado >= presupuesto) return 'meta_superada'
+    if (porcentaje < umbralBajoUso) return 'bajo_uso'
+    return 'normal'
+  }
   if (ejecutado > presupuesto) return 'excedido'
   if (porcentaje >= umbralRiesgo) return 'en_riesgo'
   if (porcentaje < umbralBajoUso) return 'bajo_uso'

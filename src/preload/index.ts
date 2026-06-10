@@ -34,7 +34,7 @@ const api: Api = {
   },
   importacion: {
     previsualizar: () => ipcRenderer.invoke(C.importacion.previsualizar),
-    confirmar: (token) => ipcRenderer.invoke(C.importacion.confirmar, token),
+    confirmar: (input) => ipcRenderer.invoke(C.importacion.confirmar, input),
     descartar: (token) => ipcRenderer.invoke(C.importacion.descartar, token),
     listar: () => ipcRenderer.invoke(C.importacion.listar),
     eliminar: (id) => ipcRenderer.invoke(C.importacion.eliminar, id)

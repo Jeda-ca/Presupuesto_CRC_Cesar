@@ -71,9 +71,12 @@ En Siimed, genere el reporte **"Libro Auxiliar - General"** del período deseado
    - El período detectado y la cantidad de movimientos.
    - **Nuevos** y **Duplicados**: si vuelve a cargar un período ya importado, los repetidos no se duplican.
    - **Cuentas nuevas** detectadas (se crearán automáticamente).
+   - **Sedes a importar**: el archivo de Siimed trae las tres sedes juntas; la herramienta las identifica por el prefijo del centro de costo (0001 Valledupar, 0002 Aguachica, 0003 Becerril). Marque o desmarque las sedes que desea cargar; solo se importarán los movimientos de las seleccionadas.
    - Una etiqueta verde **"Checksum verificado"** que confirma que los totales del archivo cuadran. Si aparece en ámbar, revise el archivo antes de continuar.
 4. Haga clic en **Confirmar importación**.
-5. Las importaciones quedan en el **Historial**, donde puede eliminarlas si se equivocó de archivo.
+5. Las importaciones quedan en el **Historial** (con sus sedes), donde puede eliminarlas si se equivocó de archivo.
+
+> **Sedes:** si hoy importa solo Valledupar y mañana quiere añadir Aguachica del mismo archivo, vuelva a cargarlo y seleccione solo Aguachica: lo ya importado no se duplica.
 
 ### 5.3 Crear áreas y asignar cuentas
 
@@ -98,10 +101,13 @@ Con un área seleccionada, en la tarjeta **"Presupuesto del área"**:
 
 Entre a **Dashboard**. Arriba elija el **período**: escriba las fechas o use los botones rápidos **Año**, **T1, T2, T3, T4** (trimestres).
 
+Arriba también puede filtrar por **naturaleza** (Todas / Ingresos / Gastos / Costos).
+
 Verá:
-- **Indicadores**: Presupuestado, Ejecutado, % de ejecución y Disponible.
-- **Semáforo de estados** (conteo por color):
-  - 🟢 **En rango** · 🟠 **En riesgo** · 🔴 **Excedido** · 🔵 **Subejecución** · ⚪ **Sin presupuesto**
+- **Indicadores**: Presupuestado, Ejecutado, % de ejecución y Disponible. Si está viendo solo ingresos, los títulos cambian a Meta de ingresos, Recaudado, % de la meta y Por recaudar / Superávit.
+- **Semáforo de estados** (la lectura depende de la naturaleza):
+  - Para **gastos/costos** el presupuesto es un límite: **En rango** (verde) · **En riesgo** (ámbar) · **Excedido** (rojo) · **Subejecución** (azul) · **Sin presupuesto** (gris).
+  - Para **ingresos** el presupuesto es una meta: **Meta superada** (verde, ¡positivo!) · **En progreso** (verde) · **Recaudo bajo** (ámbar, la alerta real) · **Sin presupuesto** (gris). Recaudar más de la meta nunca se muestra en rojo.
 - **Gráfico de barras**: presupuesto vs. ejecutado por área.
 - **Evolución mensual**: cómo avanza el gasto/ingreso mes a mes.
 - **Tabla por área** con barra de avance. Haga clic en cualquier fila para ir al **Detalle** de esa área.

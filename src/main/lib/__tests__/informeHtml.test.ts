@@ -29,7 +29,14 @@ function resumenBase(): DashboardResumen {
       }
     ],
     serieMensual: [],
-    conteoEstados: { normal: 1, en_riesgo: 0, excedido: 0, bajo_uso: 0, sin_presupuesto: 0 }
+    conteoEstados: {
+      normal: 1,
+      en_riesgo: 0,
+      excedido: 0,
+      meta_superada: 0,
+      bajo_uso: 0,
+      sin_presupuesto: 0
+    }
   }
 }
 
@@ -62,5 +69,25 @@ describe('construirInformeHTML', () => {
   it('usa el distintivo por defecto cuando no hay logo', () => {
     const html = construirInformeHTML(resumenBase(), meta)
     expect(html).not.toContain('<img src="data:image')
+  })
+
+  it('una meta de ingresos superada aparece como logro, no como alerta', () => {
+    const resumen = resumenBase()
+    resumen.areas[0].estado = 'meta_superada'
+    resumen.areas[0].ejecutado = 1500000
+    resumen.areas[0].disponible = -500000
+    const html = construirInformeHTML(resumen, meta)
+    expect(html).toContain('Metas de ingreso alcanzadas')
+    expect(html).not.toContain('requieren atención')
+    expect(html).toContain('Meta superada')
+  })
+
+  it('el recaudo bajo de un ingreso sí es alerta', () => {
+    const resumen = resumenBase()
+    resumen.areas[0].estado = 'bajo_uso'
+    resumen.areas[0].ejecutado = 100000
+    const html = construirInformeHTML(resumen, meta)
+    expect(html).toContain('requieren atención')
+    expect(html).toContain('Recaudo bajo')
   })
 })

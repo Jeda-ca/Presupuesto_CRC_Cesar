@@ -1,6 +1,7 @@
 import { dialog, BrowserWindow } from 'electron'
 import { z } from 'zod'
 import { IPC_CHANNELS, type PreviewImportacion } from '@shared/ipc/contract'
+import { confirmarImportacionSchema } from '@shared/schemas/dto'
 import { importService } from '../services/importService'
 import { handle } from './helpers'
 
@@ -23,8 +24,8 @@ export function registrarImportRoutes(): void {
     }
   )
 
-  handle(IPC_CHANNELS.importacion.confirmar, z.string().min(1), (token) =>
-    importService.confirmar(token)
+  handle(IPC_CHANNELS.importacion.confirmar, confirmarImportacionSchema, (input) =>
+    importService.confirmar(input.token, input.sedes)
   )
 
   handle(IPC_CHANNELS.importacion.descartar, z.string().min(1), (token) =>

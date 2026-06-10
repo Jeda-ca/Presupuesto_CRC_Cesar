@@ -1,4 +1,5 @@
-import type { DashboardResumen, EstadoEjecucion } from '@shared/ipc/contract'
+import type { DashboardResumen, AreaEjecucion, EstadoEjecucion } from '@shared/ipc/contract'
+import type { Naturaleza } from '@shared/domain/types'
 
 const moneda = new Intl.NumberFormat('es-CO', {
   style: 'currency',
@@ -10,8 +11,24 @@ const ESTADO: Record<EstadoEjecucion, { label: string; color: string }> = {
   normal: { label: 'En rango', color: '#16a34a' },
   en_riesgo: { label: 'En riesgo', color: '#d97706' },
   excedido: { label: 'Excedido', color: '#dc2626' },
+  meta_superada: { label: 'Meta superada', color: '#059669' },
   bajo_uso: { label: 'Subejecución', color: '#0284c7' },
   sin_presupuesto: { label: 'Sin presupuesto', color: '#94a3b8' }
+}
+
+const ESTADO_INGRESO: Partial<Record<EstadoEjecucion, { label: string; color: string }>> = {
+  bajo_uso: { label: 'Recaudo bajo', color: '#d97706' },
+  normal: { label: 'En progreso', color: '#16a34a' }
+}
+
+function metaEstado(estado: EstadoEjecucion, naturaleza: Naturaleza): { label: string; color: string } {
+  if (naturaleza === 'ingreso') return ESTADO_INGRESO[estado] ?? ESTADO[estado]
+  return ESTADO[estado]
+}
+
+function requiereAtencion(a: AreaEjecucion): boolean {
+  if (a.naturaleza === 'ingreso') return a.estado === 'bajo_uso'
+  return a.estado === 'excedido' || a.estado === 'en_riesgo'
 }
 
 function escapar(texto: string): string {
@@ -41,8 +58,10 @@ export interface InformeMeta {
 export function construirInformeHTML(resumen: DashboardResumen, meta: InformeMeta): string {
   const filas = resumen.areas
     .map((a) => {
-      const e = ESTADO[a.estado]
+      const e = metaEstado(a.estado, a.naturaleza)
       const ancho = Math.min(100, Math.max(2, a.porcentaje * 100))
+      const claseDisponible =
+        a.disponible >= 0 ? '' : a.naturaleza === 'ingreso' ? 'pos' : 'neg'
       return `
         <tr>
           <td>
@@ -51,7 +70,7 @@ export function construirInformeHTML(resumen: DashboardResumen, meta: InformeMet
           </td>
           <td class="num">${moneda.format(a.presupuesto)}</td>
           <td class="num">${moneda.format(a.ejecutado)}</td>
-          <td class="num ${a.disponible < 0 ? 'neg' : ''}">${moneda.format(a.disponible)}</td>
+          <td class="num ${claseDisponible}">${moneda.format(a.disponible)}</td>
           <td>
             <div class="bar"><span style="width:${ancho}%;background:${e.color}"></span></div>
             <small>${pct(a.porcentaje)}</small>
@@ -61,20 +80,58 @@ export function construirInformeHTML(resumen: DashboardResumen, meta: InformeMet
     })
     .join('')
 
-  const alertas = resumen.areas.filter((a) => a.estado === 'excedido' || a.estado === 'en_riesgo')
+  const alertas = resumen.areas.filter(requiereAtencion)
   const seccionAlertas = alertas.length
     ? `<div class="alertas">
         <h2>Áreas que requieren atención</h2>
         <ul>
           ${alertas
+            .map((a) => {
+              const e = metaEstado(a.estado, a.naturaleza)
+              const verbo = a.naturaleza === 'ingreso' ? 'recaudado' : 'ejecutado'
+              return `<li><strong>${escapar(a.nombre)}</strong>: ${e.label} · ${verbo} ${moneda.format(a.ejecutado)} de ${moneda.format(a.presupuesto)} (${pct(a.porcentaje)})</li>`
+            })
+            .join('')}
+        </ul>
+      </div>`
+    : ''
+
+  const logros = resumen.areas.filter((a) => a.estado === 'meta_superada')
+  const seccionLogros = logros.length
+    ? `<div class="logros">
+        <h2>Metas de ingreso alcanzadas</h2>
+        <ul>
+          ${logros
             .map(
               (a) =>
-                `<li><strong>${escapar(a.nombre)}</strong>: ${ESTADO[a.estado].label} · ejecutado ${moneda.format(a.ejecutado)} de ${moneda.format(a.presupuesto)} (${pct(a.porcentaje)})</li>`
+                `<li><strong>${escapar(a.nombre)}</strong>: recaudado ${moneda.format(a.ejecutado)} de ${moneda.format(a.presupuesto)} (${pct(a.porcentaje)})</li>`
             )
             .join('')}
         </ul>
       </div>`
     : ''
+
+  const soloIngresos = resumen.areas.length > 0 && resumen.areas.every((a) => a.naturaleza === 'ingreso')
+  const soloEgresos = resumen.areas.length > 0 && resumen.areas.every((a) => a.naturaleza !== 'ingreso')
+  const disponibleColor =
+    resumen.totalDisponible < 0
+      ? soloIngresos
+        ? '#059669'
+        : soloEgresos
+          ? '#dc2626'
+          : '#1e293b'
+      : soloIngresos
+        ? '#1e293b'
+        : '#16a34a'
+  const disponibleTitulo =
+    soloIngresos && resumen.totalDisponible < 0
+      ? 'Superávit'
+      : soloIngresos
+        ? 'Por recaudar'
+        : 'Disponible'
+  const disponibleValor = soloIngresos
+    ? Math.abs(resumen.totalDisponible)
+    : resumen.totalDisponible
 
   return `<!doctype html>
 <html lang="es"><head><meta charset="utf-8" />
@@ -98,6 +155,7 @@ export function construirInformeHTML(resumen: DashboardResumen, meta: InformeMet
   td { padding: 7px 8px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
   td.num { text-align: right; font-variant-numeric: tabular-nums; }
   td.neg { color: #dc2626; }
+  td.pos { color: #059669; }
   .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
   .bar { width: 110px; height: 6px; background: #f1f5f9; border-radius: 3px; overflow: hidden; display: inline-block; vertical-align: middle; }
   .bar span { display: block; height: 100%; }
@@ -106,6 +164,9 @@ export function construirInformeHTML(resumen: DashboardResumen, meta: InformeMet
   .alertas { margin-top: 22px; border: 1px solid #fde68a; background: #fffbeb; border-radius: 10px; padding: 12px 16px; }
   .alertas h2 { margin-top: 0; color: #b45309; }
   .alertas li { margin: 4px 0; }
+  .logros { margin-top: 14px; border: 1px solid #a7f3d0; background: #ecfdf5; border-radius: 10px; padding: 12px 16px; }
+  .logros h2 { margin-top: 0; color: #047857; }
+  .logros li { margin: 4px 0; }
   footer { margin-top: 28px; border-top: 1px solid #e2e8f0; padding-top: 8px; color: #94a3b8; font-size: 9px; text-align: center; }
 </style></head>
 <body>
@@ -127,7 +188,7 @@ export function construirInformeHTML(resumen: DashboardResumen, meta: InformeMet
     <div class="kpi"><div class="label">Presupuestado</div><div class="valor">${moneda.format(resumen.totalPresupuesto)}</div></div>
     <div class="kpi"><div class="label">Ejecutado</div><div class="valor">${moneda.format(resumen.totalEjecutado)}</div></div>
     <div class="kpi"><div class="label">% Ejecución</div><div class="valor">${pct(resumen.porcentaje)}</div></div>
-    <div class="kpi"><div class="label">Disponible</div><div class="valor" style="color:${resumen.totalDisponible < 0 ? '#dc2626' : '#16a34a'}">${moneda.format(resumen.totalDisponible)}</div></div>
+    <div class="kpi"><div class="label">${disponibleTitulo}</div><div class="valor" style="color:${disponibleColor}">${moneda.format(disponibleValor)}</div></div>
   </div>
 
   <h2>Comparativo por área</h2>
@@ -137,6 +198,7 @@ export function construirInformeHTML(resumen: DashboardResumen, meta: InformeMet
   </table>
 
   ${seccionAlertas}
+  ${seccionLogros}
 
   <footer>Documento generado automáticamente por la Herramienta de Presupuesto · ${escapar(meta.entidad)}</footer>
 </body></html>`

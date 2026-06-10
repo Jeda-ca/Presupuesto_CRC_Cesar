@@ -15,7 +15,8 @@ import type {
   PeriodoQuery,
   ResumenQuery,
   DetalleAreaQuery,
-  MovimientosQuery
+  MovimientosQuery,
+  ConfirmarImportacionInput
 } from '../schemas/dto'
 
 /**
@@ -44,6 +45,12 @@ export interface ChecksumDescuadre {
   creditosReporte: number
 }
 
+export interface SedeImportacion {
+  prefijo: string
+  nombre: string
+  movimientos: number
+}
+
 export interface PreviewImportacion {
   token: string
   archivo: string
@@ -54,6 +61,7 @@ export interface PreviewImportacion {
   nuevos: number
   duplicados: number
   cuentasNuevas: CuentaNueva[]
+  sedes: SedeImportacion[]
   checksumCuadra: boolean
   debitosParse: number
   creditosParse: number
@@ -74,6 +82,7 @@ export type EstadoEjecucion =
   | 'normal'
   | 'en_riesgo'
   | 'excedido'
+  | 'meta_superada'
   | 'bajo_uso'
   | 'sin_presupuesto'
 
@@ -247,7 +256,7 @@ export interface Api {
   }
   importacion: {
     previsualizar(): Promise<Result<PreviewImportacion | null>>
-    confirmar(token: string): Promise<Result<ResultadoConfirmacion>>
+    confirmar(input: ConfirmarImportacionInput): Promise<Result<ResultadoConfirmacion>>
     descartar(token: string): Promise<Result<void>>
     listar(): Promise<Result<Importacion[]>>
     eliminar(id: string): Promise<Result<{ movimientosEliminados: number }>>

@@ -9,7 +9,12 @@ import { PeriodoSelector, rangoAnio, type Periodo } from '../components/PeriodoS
 import { api, unwrap } from '../api/client'
 import { useAppStore } from '../store/appStore'
 import { formatoMoneda, formatoPorcentaje } from '../lib/formato'
-import { ESTADO_META } from '../lib/estados'
+import {
+  estadoMeta,
+  sentidoDeAreas,
+  kpiDisponible,
+  acentoDisponibleFila
+} from '../lib/estados'
 
 export function InformesPage(): JSX.Element {
   const anio = useAppStore((s) => s.config?.anioActivo ?? new Date().getFullYear())
@@ -30,6 +35,11 @@ export function InformesPage(): JSX.Element {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [periodo])
+
+  const kpiDispInforme = kpiDisponible(
+    sentidoDeAreas(resumen?.areas ?? []),
+    resumen?.totalDisponible ?? 0
+  )
 
   async function generar(): Promise<void> {
     setGenerando(true)
@@ -69,9 +79,10 @@ export function InformesPage(): JSX.Element {
             <KpiCard titulo="Ejecutado" valor={formatoMoneda(resumen.totalEjecutado)} />
             <KpiCard titulo="% Ejecución" valor={formatoPorcentaje(resumen.porcentaje)} />
             <KpiCard
-              titulo="Disponible"
-              valor={formatoMoneda(resumen.totalDisponible)}
-              acento={resumen.totalDisponible < 0 ? 'text-red-600' : 'text-emerald-600'}
+              titulo={kpiDispInforme.titulo}
+              valor={formatoMoneda(kpiDispInforme.valor)}
+              detalle={kpiDispInforme.detalle}
+              acento={kpiDispInforme.acento}
             />
           </div>
 
@@ -88,24 +99,27 @@ export function InformesPage(): JSX.Element {
                 </tr>
               </thead>
               <tbody>
-                {resumen.areas.map((a) => (
-                  <tr key={a.areaId} className="border-b border-slate-50 last:border-0">
-                    <td className="px-5 py-2.5">
-                      <span className="mr-2 inline-block h-2.5 w-2.5 rounded-full align-middle" style={{ backgroundColor: a.color }} />
-                      <span className="text-slate-700">{a.nombre}</span>
-                    </td>
-                    <td className="px-5 py-2.5 text-right text-slate-600">{formatoMoneda(a.presupuesto)}</td>
-                    <td className="px-5 py-2.5 text-right text-slate-600">{formatoMoneda(a.ejecutado)}</td>
-                    <td className={`px-5 py-2.5 text-right ${a.disponible < 0 ? 'text-red-600' : 'text-slate-600'}`}>
-                      {formatoMoneda(a.disponible)}
-                    </td>
-                    <td className="px-5 py-2.5">
-                      <span className={`rounded-full px-2 py-0.5 text-xs ${ESTADO_META[a.estado].chip}`}>
-                        {ESTADO_META[a.estado].label}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
+                {resumen.areas.map((a) => {
+                  const meta = estadoMeta(a.estado, a.naturaleza)
+                  return (
+                    <tr key={a.areaId} className="border-b border-slate-50 last:border-0">
+                      <td className="px-5 py-2.5">
+                        <span className="mr-2 inline-block h-2.5 w-2.5 rounded-full align-middle" style={{ backgroundColor: a.color }} />
+                        <span className="text-slate-700">{a.nombre}</span>
+                      </td>
+                      <td className="px-5 py-2.5 text-right text-slate-600">{formatoMoneda(a.presupuesto)}</td>
+                      <td className="px-5 py-2.5 text-right text-slate-600">{formatoMoneda(a.ejecutado)}</td>
+                      <td className={`px-5 py-2.5 text-right ${acentoDisponibleFila(a.naturaleza, a.disponible)}`}>
+                        {formatoMoneda(a.disponible)}
+                      </td>
+                      <td className="px-5 py-2.5">
+                        <span className={`rounded-full px-2 py-0.5 text-xs ${meta.chip}`}>
+                          {meta.label}
+                        </span>
+                      </td>
+                    </tr>
+                  )
+                })}
                 {resumen.areas.length === 0 && (
                   <tr>
                     <td colSpan={5} className="px-5 py-8 text-center text-sm text-slate-400">

@@ -20,7 +20,13 @@ import { Icono } from '../components/ui/Icono'
 import { api, unwrap } from '../api/client'
 import { useAppStore } from '../store/appStore'
 import { formatoMoneda, formatoCompacto, formatoPorcentaje, nombreMes } from '../lib/formato'
-import { ESTADO_META } from '../lib/estados'
+import {
+  estadoMeta,
+  sentidoDeAreas,
+  kpiDisponible,
+  acentoDisponibleFila,
+  type SentidoPresupuesto
+} from '../lib/estados'
 import type { Naturaleza } from '@shared/domain/types'
 
 type FiltroNaturaleza = 'todas' | Naturaleza
@@ -77,6 +83,14 @@ export function DashboardPage(): JSX.Element {
       Ejecutado: Math.round(s.ejecutado)
     })) ?? []
 
+  const sentido: SentidoPresupuesto =
+    naturaleza !== 'todas'
+      ? naturaleza === 'ingreso'
+        ? 'ingreso'
+        : 'egreso'
+      : sentidoDeAreas(data?.areas ?? [])
+  const kpiDisp = kpiDisponible(sentido, data?.totalDisponible ?? 0)
+
   return (
     <div>
       <EncabezadoPagina
@@ -118,40 +132,59 @@ export function DashboardPage(): JSX.Element {
       ) : (
         <div className="space-y-5">
           <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-            <KpiCard titulo="Presupuestado" valor={formatoMoneda(data.totalPresupuesto)} />
             <KpiCard
-              titulo="Ejecutado"
+              titulo={sentido === 'ingreso' ? 'Meta de ingresos' : 'Presupuestado'}
+              valor={formatoMoneda(data.totalPresupuesto)}
+            />
+            <KpiCard
+              titulo={sentido === 'ingreso' ? 'Recaudado' : 'Ejecutado'}
               valor={formatoMoneda(data.totalEjecutado)}
               detalle={`${data.numMovimientos} movimientos`}
             />
             <KpiCard
-              titulo="% Ejecución"
+              titulo={sentido === 'ingreso' ? '% De la meta' : '% Ejecución'}
               valor={formatoPorcentaje(data.porcentaje)}
               acento={
-                data.totalEjecutado > data.totalPresupuesto && data.totalPresupuesto > 0
-                  ? 'text-red-600'
+                data.totalPresupuesto > 0 && data.totalEjecutado > data.totalPresupuesto
+                  ? sentido === 'ingreso'
+                    ? 'text-emerald-600'
+                    : sentido === 'egreso'
+                      ? 'text-red-600'
+                      : 'text-slate-800'
                   : 'text-slate-800'
               }
             />
             <KpiCard
-              titulo="Disponible"
-              valor={formatoMoneda(data.totalDisponible)}
-              detalle={data.totalDisponible < 0 ? 'Presupuesto excedido' : undefined}
-              acento={data.totalDisponible < 0 ? 'text-red-600' : 'text-emerald-600'}
+              titulo={kpiDisp.titulo}
+              valor={formatoMoneda(kpiDisp.valor)}
+              detalle={kpiDisp.detalle}
+              acento={kpiDisp.acento}
             />
           </div>
 
           <div className="flex flex-wrap gap-2">
-            {(['excedido', 'en_riesgo', 'bajo_uso', 'sin_presupuesto', 'normal'] as const).map(
-              (estado) => (
-                <span
-                  key={estado}
-                  className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-medium ${ESTADO_META[estado].chip}`}
-                >
-                  {ESTADO_META[estado].label}: {data.conteoEstados[estado]}
-                </span>
-              )
-            )}
+            {(
+              [
+                'excedido',
+                'en_riesgo',
+                'meta_superada',
+                'bajo_uso',
+                'sin_presupuesto',
+                'normal'
+              ] as const
+            )
+              .filter((estado) => data.conteoEstados[estado] > 0)
+              .map((estado) => {
+                const meta = estadoMeta(estado, naturaleza === 'todas' ? null : naturaleza)
+                return (
+                  <span
+                    key={estado}
+                    className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-medium ${meta.chip}`}
+                  >
+                    {meta.label}: {data.conteoEstados[estado]}
+                  </span>
+                )
+              })}
             {(data.ejecutadoSinArea !== 0 || data.cuentasSinAsignar > 0) && (
               <button
                 onClick={() => irA('areas')}
@@ -248,7 +281,7 @@ export function DashboardPage(): JSX.Element {
                 </thead>
                 <tbody>
                   {data.areas.map((a) => {
-                    const meta = ESTADO_META[a.estado]
+                    const meta = estadoMeta(a.estado, a.naturaleza)
                     return (
                       <tr
                         key={a.areaId}
@@ -274,7 +307,7 @@ export function DashboardPage(): JSX.Element {
                           {formatoMoneda(a.ejecutado)}
                         </td>
                         <td
-                          className={`px-5 py-3 text-right ${a.disponible < 0 ? 'text-red-600' : 'text-slate-600'}`}
+                          className={`px-5 py-3 text-right ${acentoDisponibleFila(a.naturaleza, a.disponible)}`}
                         >
                           {formatoMoneda(a.disponible)}
                         </td>

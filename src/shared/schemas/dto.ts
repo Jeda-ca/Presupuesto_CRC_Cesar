@@ -65,6 +65,11 @@ export const movimientosQuerySchema = z.object({
   cuenta: z.string().min(1).nullish()
 })
 
+export const confirmarImportacionSchema = z.object({
+  token: z.string().min(1),
+  sedes: z.array(z.string().min(1)).nullish()
+})
+
 export const idSchema = z.object({ id: z.string().min(1) })
 
 export type CrearAreaInput = z.infer<typeof crearAreaSchema>
@@ -76,3 +81,4 @@ export type PeriodoQuery = z.infer<typeof periodoQuerySchema>
 export type ResumenQuery = z.infer<typeof resumenQuerySchema>
 export type DetalleAreaQuery = z.infer<typeof detalleAreaQuerySchema>
 export type MovimientosQuery = z.infer<typeof movimientosQuerySchema>
+export type ConfirmarImportacionInput = z.infer<typeof confirmarImportacionSchema>

@@ -8,6 +8,7 @@ import { Icono } from '../components/ui/Icono'
 import { api, unwrap } from '../api/client'
 import { useAppStore } from '../store/appStore'
 import { formatoMoneda, formatoFechaISO } from '../lib/formato'
+import { nombreSede } from '@shared/domain/sedes'
 
 const ETIQUETA_NATURALEZA = { ingreso: 'Ingreso', gasto: 'Gasto', costo: 'Costo' } as const
 
@@ -24,6 +25,7 @@ export function ImportarPage(): JSX.Element {
   const notificar = useAppStore((s) => s.notificar)
   const refrescarWorkspace = useAppStore((s) => s.refrescarWorkspace)
   const [preview, setPreview] = useState<PreviewImportacion | null>(null)
+  const [sedesSel, setSedesSel] = useState<string[]>([])
   const [historial, setHistorial] = useState<Importacion[]>([])
   const [cargando, setCargando] = useState(false)
   const [confirmando, setConfirmando] = useState(false)
@@ -45,7 +47,10 @@ export function ImportarPage(): JSX.Element {
     setCargando(true)
     try {
       const resultado = await unwrap(api.importacion.previsualizar())
-      if (resultado) setPreview(resultado)
+      if (resultado) {
+        setPreview(resultado)
+        setSedesSel(resultado.sedes.map((s) => s.prefijo))
+      }
     } catch (e) {
       notificar('error', (e as Error).message)
     } finally {
@@ -53,11 +58,22 @@ export function ImportarPage(): JSX.Element {
     }
   }
 
+  function alternarSede(prefijo: string): void {
+    setSedesSel((prev) =>
+      prev.includes(prefijo) ? prev.filter((p) => p !== prefijo) : [...prev, prefijo]
+    )
+  }
+
+  const movimientosSeleccionados =
+    preview?.sedes
+      .filter((s) => sedesSel.includes(s.prefijo))
+      .reduce((t, s) => t + s.movimientos, 0) ?? 0
+
   async function confirmar(): Promise<void> {
     if (!preview) return
     setConfirmando(true)
     try {
-      const r = await unwrap(api.importacion.confirmar(preview.token))
+      const r = await unwrap(api.importacion.confirmar({ token: preview.token, sedes: sedesSel }))
       notificar(
         'exito',
         `Importación completa: ${r.insertados} nuevos, ${r.actualizados} actualizados, ${r.cuentasCreadas} cuentas creadas.`
@@ -145,6 +161,48 @@ export function ImportarPage(): JSX.Element {
               />
             </div>
 
+            {preview.sedes.length > 0 && (
+              <div>
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                  Sedes a importar
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {preview.sedes.map((s) => {
+                    const activa = sedesSel.includes(s.prefijo)
+                    return (
+                      <button
+                        key={s.prefijo}
+                        onClick={() => alternarSede(s.prefijo)}
+                        className={`inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors ${
+                          activa
+                            ? 'border-crc-500 bg-crc-50 text-crc-700'
+                            : 'border-slate-200 bg-white text-slate-400 hover:bg-slate-50'
+                        }`}
+                      >
+                        <span
+                          className={`flex h-4 w-4 items-center justify-center rounded border ${
+                            activa
+                              ? 'border-crc-600 bg-crc-600 text-white'
+                              : 'border-slate-300 bg-white'
+                          }`}
+                        >
+                          {activa && <Icono nombre="check" className="h-3 w-3" />}
+                        </span>
+                        <span className="font-medium">{s.nombre}</span>
+                        <span className="text-xs opacity-70">
+                          ({s.prefijo} · {s.movimientos} mov.)
+                        </span>
+                      </button>
+                    )
+                  })}
+                </div>
+                <p className="mt-2 text-xs text-slate-400">
+                  Solo se importarán los movimientos de las sedes seleccionadas
+                  {sedesSel.length > 0 && ` (${movimientosSeleccionados} movimientos)`}.
+                </p>
+              </div>
+            )}
+
             {preview.archivoYaImportado && (
               <Aviso tipo="info">
                 Este archivo ya fue importado antes. Confirmar volverá a sincronizar los movimientos
@@ -191,7 +249,7 @@ export function ImportarPage(): JSX.Element {
               <Boton variante="secundario" onClick={cancelar} disabled={confirmando}>
                 Cancelar
               </Boton>
-              <Boton onClick={confirmar} disabled={confirmando}>
+              <Boton onClick={confirmar} disabled={confirmando || sedesSel.length === 0}>
                 {confirmando ? 'Importando...' : 'Confirmar importación'}
               </Boton>
             </div>
@@ -211,6 +269,7 @@ export function ImportarPage(): JSX.Element {
               <tr className="border-b border-slate-100 text-left text-xs uppercase tracking-wide text-slate-400">
                 <th className="px-5 py-2.5 font-medium">Archivo</th>
                 <th className="px-5 py-2.5 font-medium">Período</th>
+                <th className="px-5 py-2.5 font-medium">Sedes</th>
                 <th className="px-5 py-2.5 font-medium">Cargado</th>
                 <th className="px-5 py-2.5 text-right font-medium">Registros</th>
                 <th className="px-5 py-2.5" />
@@ -224,6 +283,9 @@ export function ImportarPage(): JSX.Element {
                     {imp.periodoInicio && imp.periodoFin
                       ? `${formatoFechaISO(imp.periodoInicio)} - ${formatoFechaISO(imp.periodoFin)}`
                       : '—'}
+                  </td>
+                  <td className="px-5 py-3 text-slate-500">
+                    {imp.sedes.length > 0 ? imp.sedes.map(nombreSede).join(', ') : 'Todas'}
                   </td>
                   <td className="px-5 py-3 text-slate-500">
                     {new Date(imp.fechaCarga).toLocaleDateString('es-CO')}

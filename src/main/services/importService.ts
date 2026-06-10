@@ -5,9 +5,11 @@ import type { CuentaContable, Movimiento, Importacion } from '@shared/domain/typ
 import type {
   PreviewImportacion,
   ResultadoConfirmacion,
-  CuentaNueva
+  CuentaNueva,
+  SedeImportacion
 } from '@shared/ipc/contract'
 import { claseDeCuenta, naturalezaDeCuenta } from '@shared/domain/puc'
+import { prefijoDeCentroCosto, nombreSede } from '@shared/domain/sedes'
 import { leerMatriz } from '../lib/lectorArchivo'
 import { parsearLibroAuxiliar, type ResultadoParseo } from '../lib/siimedParser'
 import { cuentaRepo } from '../repositories/cuentaRepo'
@@ -49,6 +51,15 @@ export const importService = {
         naturaleza: naturalezaDeCuenta(c.codigo)
       }))
 
+    const movsPorSede = new Map<string, number>()
+    for (const mov of parseo.movimientos) {
+      const prefijo = prefijoDeCentroCosto(mov.centroCosto)
+      movsPorSede.set(prefijo, (movsPorSede.get(prefijo) ?? 0) + 1)
+    }
+    const sedes: SedeImportacion[] = [...movsPorSede.entries()]
+      .map(([prefijo, movimientos]) => ({ prefijo, nombre: nombreSede(prefijo), movimientos }))
+      .sort((a, b) => a.prefijo.localeCompare(b.prefijo))
+
     const token = nuevoId()
     pendientes.set(token, { archivo: basename(ruta), hash, parseo })
 
@@ -62,6 +73,7 @@ export const importService = {
       nuevos,
       duplicados,
       cuentasNuevas,
+      sedes,
       checksumCuadra: parseo.checksumGlobal.cuadra,
       debitosParse: parseo.checksumGlobal.debitosParse,
       creditosParse: parseo.checksumGlobal.creditosParse,
@@ -81,14 +93,24 @@ export const importService = {
     }
   },
 
-  confirmar(token: string): ResultadoConfirmacion {
+  confirmar(token: string, sedes?: string[] | null): ResultadoConfirmacion {
     const pendiente = pendientes.get(token)
     if (!pendiente) throw new Error('La previsualización expiró. Vuelva a cargar el archivo.')
     const { parseo, archivo, hash } = pendiente
 
+    const filtroSedes = sedes && sedes.length > 0 ? new Set(sedes) : null
+    const movimientosAImportar = filtroSedes
+      ? parseo.movimientos.filter((m) => filtroSedes.has(prefijoDeCentroCosto(m.centroCosto)))
+      : parseo.movimientos
+    if (movimientosAImportar.length === 0) {
+      throw new Error('No hay movimientos para las sedes seleccionadas.')
+    }
+
     const importacionId = nuevoId()
+    const cuentasUsadas = new Set(movimientosAImportar.map((m) => m.cuenta))
     let cuentasCreadas = 0
     for (const c of parseo.cuentas) {
+      if (!cuentasUsadas.has(c.codigo)) continue
       const existente = cuentaRepo.buscarPorCodigo(c.codigo)
       if (!existente) {
         const cuenta: CuentaContable = {
@@ -106,7 +128,7 @@ export const importService = {
       }
     }
 
-    const movimientos: Movimiento[] = parseo.movimientos.map((m) => ({
+    const movimientos: Movimiento[] = movimientosAImportar.map((m) => ({
       id: idMovimiento(m.comprobante, m.cuenta),
       cuenta: m.cuenta,
       nit: m.nit,
@@ -122,6 +144,10 @@ export const importService = {
 
     const { insertados, actualizados } = movimientoRepo.upsertLote(movimientos)
 
+    const sedesImportadas = filtroSedes
+      ? [...filtroSedes].sort()
+      : [...new Set(movimientosAImportar.map((m) => prefijoDeCentroCosto(m.centroCosto)))].sort()
+
     const importacion: Importacion = {
       id: importacionId,
       archivo,
@@ -130,6 +156,7 @@ export const importService = {
       periodoInicio: parseo.periodoInicio,
       periodoFin: parseo.periodoFin,
       totalRegistros: movimientos.length,
+      sedes: sedesImportadas,
       fechaCarga: new Date().toISOString()
     }
     importacionRepo.insertar(importacion)
