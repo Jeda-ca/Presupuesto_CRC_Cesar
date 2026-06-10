@@ -17,6 +17,7 @@ export function DetallePage(): JSX.Element {
   const anio = useAppStore((s) => s.config?.anioActivo ?? new Date().getFullYear())
   const notificar = useAppStore((s) => s.notificar)
   const areaSeleccionada = useAppStore((s) => s.areaSeleccionada)
+  const sedeActiva = useAppStore((s) => s.sedeActiva)!
 
   const [areas, setAreas] = useState<Area[]>([])
   const [areaId, setAreaId] = useState<string | null>(areaSeleccionada)
@@ -28,14 +29,14 @@ export function DetallePage(): JSX.Element {
   useEffect(() => setPeriodo(rangoAnio(anio)), [anio])
 
   useEffect(() => {
-    unwrap(api.areas.listar())
+    unwrap(api.areas.listar(sedeActiva))
       .then((a) => {
         setAreas(a)
         setAreaId((actual) => actual ?? (a.length > 0 ? a[0].id : null))
       })
       .catch((e: Error) => notificar('error', e.message))
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [sedeActiva])
 
   useEffect(() => {
     if (!areaId) return
@@ -54,8 +55,8 @@ export function DetallePage(): JSX.Element {
     if (!areaId) return
     let activo = true
     const query = cuentaSel
-      ? { ...periodo, cuenta: cuentaSel }
-      : { ...periodo, areaId }
+      ? { ...periodo, sedeId: sedeActiva, cuenta: cuentaSel }
+      : { ...periodo, sedeId: sedeActiva, areaId }
     unwrap(api.movimientos.listar(query))
       .then((m) => activo && setMovimientos(m))
       .catch((e: Error) => notificar('error', e.message))

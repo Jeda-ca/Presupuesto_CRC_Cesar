@@ -32,6 +32,7 @@ export function AreasPage(): JSX.Element {
   const notificar = useAppStore((s) => s.notificar)
   const refrescarWorkspace = useAppStore((s) => s.refrescarWorkspace)
   const anio = useAppStore((s) => s.config?.anioActivo ?? new Date().getFullYear())
+  const sedeActiva = useAppStore((s) => s.sedeActiva)!
 
   const [areas, setAreas] = useState<Area[]>([])
   const [cuentas, setCuentas] = useState<CuentaContable[]>([])
@@ -47,9 +48,9 @@ export function AreasPage(): JSX.Element {
   async function cargarTodo(): Promise<void> {
     try {
       const [a, c, p] = await Promise.all([
-        unwrap(api.areas.listar()),
-        unwrap(api.cuentas.listar()),
-        unwrap(api.presupuestos.listarPorAnio(anio))
+        unwrap(api.areas.listar(sedeActiva)),
+        unwrap(api.cuentas.listar(sedeActiva)),
+        unwrap(api.presupuestos.listarPorAnio({ sedeId: sedeActiva, anio }))
       ])
       setAreas(a)
       setCuentas(c)
@@ -81,7 +82,7 @@ export function AreasPage(): JSX.Element {
 
   async function asignar(codigo: string, areaId: string | null): Promise<void> {
     try {
-      await unwrap(api.cuentas.asignarArea({ codigo, areaId }))
+      await unwrap(api.cuentas.asignarArea({ sedeId: sedeActiva, codigo, areaId }))
       await cargarTodo()
       await refrescarWorkspace()
     } catch (e) {
@@ -109,7 +110,16 @@ export function AreasPage(): JSX.Element {
   ): Promise<void> {
     setGuardando(true)
     try {
-      await unwrap(api.presupuestos.guardar({ ambito, referenciaId: refId, anio, montoAnual, meses }))
+      await unwrap(
+        api.presupuestos.guardar({
+          sedeId: sedeActiva,
+          ambito,
+          referenciaId: refId,
+          anio,
+          montoAnual,
+          meses
+        })
+      )
       notificar('exito', 'Presupuesto guardado')
       await cargarTodo()
       await refrescarWorkspace()
@@ -304,6 +314,7 @@ export function AreasPage(): JSX.Element {
       <AreaFormModal
         abierto={modalArea.abierto}
         area={modalArea.area}
+        sedeId={sedeActiva}
         onCerrar={() => setModalArea({ abierto: false, area: null })}
         onGuardado={cargarTodo}
       />

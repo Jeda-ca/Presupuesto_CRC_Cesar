@@ -2,7 +2,13 @@ import { z } from 'zod'
 
 export const naturalezaSchema = z.enum(['ingreso', 'gasto', 'costo'])
 
+export const sedeSchema = z.object({
+  prefijo: z.string().min(1),
+  nombre: z.string().min(1)
+})
+
 export const cuentaContableSchema = z.object({
+  sedeId: z.string().min(1),
   codigo: z.string().min(1),
   descripcion: z.string(),
   clase: z.number().int(),
@@ -13,6 +19,7 @@ export const cuentaContableSchema = z.object({
 
 export const areaSchema = z.object({
   id: z.string().min(1),
+  sedeId: z.string().min(1),
   nombre: z.string().min(1).max(120),
   descripcion: z.string().max(500),
   color: z.string().regex(/^#[0-9a-fA-F]{6}$/),
@@ -25,6 +32,7 @@ export const ambitoPresupuestoSchema = z.enum(['area', 'cuenta'])
 
 export const presupuestoSchema = z.object({
   id: z.string().min(1),
+  sedeId: z.string().min(1),
   ambito: ambitoPresupuestoSchema,
   referenciaId: z.string().min(1),
   anio: z.number().int().gte(2000).lte(2100),
@@ -36,6 +44,7 @@ export const presupuestoSchema = z.object({
 
 export const movimientoSchema = z.object({
   id: z.string().min(1),
+  sedeId: z.string().min(1),
   cuenta: z.string().min(1),
   nit: z.string(),
   tercero: z.string(),
@@ -63,13 +72,15 @@ export const importacionSchema = z.object({
 export const configuracionSchema = z.object({
   umbralRiesgo: z.number().gt(0).lte(1),
   umbralBajoUso: z.number().gte(0).lt(1),
-  anioActivo: z.number().int().gte(2000).lte(2100)
+  anioActivo: z.number().int().gte(2000).lte(2100),
+  sedeActiva: z.string().nullable().default(null)
 })
 
-export const STORE_VERSION = 1
+export const STORE_VERSION = 2
 
 export const storeDataSchema = z.object({
   version: z.number().int(),
+  sedes: z.array(sedeSchema),
   areas: z.array(areaSchema),
   cuentas: z.array(cuentaContableSchema),
   presupuestos: z.array(presupuestoSchema),

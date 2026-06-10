@@ -2,19 +2,27 @@ import type { Area } from '@shared/domain/types'
 import { store } from '../infra/store'
 
 export const areaRepo = {
-  listar(): Area[] {
-    return [...store.getData().areas].sort((a, b) => a.nombre.localeCompare(b.nombre))
+  listar(sedeId: string): Area[] {
+    return store
+      .getData()
+      .areas.filter((a) => a.sedeId === sedeId)
+      .sort((a, b) => a.nombre.localeCompare(b.nombre))
   },
 
   buscarPorId(id: string): Area | undefined {
     return store.getData().areas.find((a) => a.id === id)
   },
 
-  existeNombre(nombre: string, excluirId?: string): boolean {
+  existeNombre(sedeId: string, nombre: string, excluirId?: string): boolean {
     const objetivo = nombre.trim().toLowerCase()
     return store
       .getData()
-      .areas.some((a) => a.nombre.trim().toLowerCase() === objetivo && a.id !== excluirId)
+      .areas.some(
+        (a) =>
+          a.sedeId === sedeId &&
+          a.nombre.trim().toLowerCase() === objetivo &&
+          a.id !== excluirId
+      )
   },
 
   insertar(area: Area): Area {

@@ -4,17 +4,21 @@ import { cuentaRepo } from '../repositories/cuentaRepo'
 import { areaRepo } from '../repositories/areaRepo'
 
 export const cuentaService = {
-  listar(): CuentaContable[] {
-    return cuentaRepo.listar()
+  listar(sedeId: string): CuentaContable[] {
+    return cuentaRepo.listar(sedeId)
   },
 
   asignarArea(input: AsignarCuentaAreaInput): CuentaContable {
-    if (input.areaId !== null && !areaRepo.buscarPorId(input.areaId)) {
-      throw new Error('Área destino no encontrada')
+    if (input.areaId !== null) {
+      const area = areaRepo.buscarPorId(input.areaId)
+      if (!area) throw new Error('Área destino no encontrada')
+      if (area.sedeId !== input.sedeId) {
+        throw new Error('El área pertenece a otra sede')
+      }
     }
-    if (!cuentaRepo.buscarPorCodigo(input.codigo)) {
+    if (!cuentaRepo.buscarPorCodigo(input.sedeId, input.codigo)) {
       throw new Error('Cuenta no encontrada')
     }
-    return cuentaRepo.asignarArea(input.codigo, input.areaId)
+    return cuentaRepo.asignarArea(input.sedeId, input.codigo, input.areaId)
   }
 }

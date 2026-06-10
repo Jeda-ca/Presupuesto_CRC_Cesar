@@ -19,6 +19,7 @@ import {
 export function InformesPage(): JSX.Element {
   const anio = useAppStore((s) => s.config?.anioActivo ?? new Date().getFullYear())
   const notificar = useAppStore((s) => s.notificar)
+  const sedeActiva = useAppStore((s) => s.sedeActiva)!
   const [periodo, setPeriodo] = useState<Periodo>(rangoAnio(anio))
   const [resumen, setResumen] = useState<DashboardResumen | null>(null)
   const [generando, setGenerando] = useState(false)
@@ -27,14 +28,14 @@ export function InformesPage(): JSX.Element {
 
   useEffect(() => {
     let activo = true
-    unwrap(api.dashboard.resumen(periodo))
+    unwrap(api.dashboard.resumen({ ...periodo, sedeId: sedeActiva }))
       .then((r) => activo && setResumen(r))
       .catch((e: Error) => notificar('error', e.message))
     return () => {
       activo = false
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [periodo])
+  }, [periodo, sedeActiva])
 
   const kpiDispInforme = kpiDisponible(
     sentidoDeAreas(resumen?.areas ?? []),
@@ -44,7 +45,7 @@ export function InformesPage(): JSX.Element {
   async function generar(): Promise<void> {
     setGenerando(true)
     try {
-      const r = await unwrap(api.reporte.generarPdf(periodo))
+      const r = await unwrap(api.reporte.generarPdf({ ...periodo, sedeId: sedeActiva }))
       if (r) notificar('exito', `Informe guardado en: ${r.ruta}`)
     } catch (e) {
       notificar('error', (e as Error).message)

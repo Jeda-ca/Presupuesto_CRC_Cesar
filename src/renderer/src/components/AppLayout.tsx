@@ -26,6 +26,10 @@ export function AppLayout({ children }: { children: ReactNode }): JSX.Element {
   const workspace = useAppStore((s) => s.workspace)
   const refrescarWorkspace = useAppStore((s) => s.refrescarWorkspace)
   const notificar = useAppStore((s) => s.notificar)
+  const sedes = useAppStore((s) => s.sedes)
+  const sedeActiva = useAppStore((s) => s.sedeActiva)
+  const cambiarSede = useAppStore((s) => s.cambiarSede)
+  const nombreSedeActiva = sedes.find((s) => s.prefijo === sedeActiva)?.nombre ?? sedeActiva
 
   async function abrir(): Promise<void> {
     try {
@@ -87,13 +91,25 @@ export function AppLayout({ children }: { children: ReactNode }): JSX.Element {
 
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="flex items-center justify-between border-b border-slate-200 bg-white px-6 py-3">
-          <div className="min-w-0">
-            <p className="truncate text-sm font-medium text-slate-700">
-              {workspace?.nombre ?? 'Cargando...'}
-            </p>
-            <p className="text-xs text-slate-400">
-              Guardado automático · {horaCorta(workspace?.modificadoEn ?? null)}
-            </p>
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="min-w-0">
+              <p className="truncate text-sm font-medium text-slate-700">
+                {workspace?.nombre ?? 'Cargando...'}
+              </p>
+              <p className="text-xs text-slate-400">
+                Guardado automático · {horaCorta(workspace?.modificadoEn ?? null)}
+              </p>
+            </div>
+            <span className="hidden shrink-0 items-center gap-1.5 rounded-full bg-crc-50 px-3 py-1 text-xs font-semibold text-crc-700 sm:inline-flex">
+              Sede: {nombreSedeActiva}
+            </span>
+            <button
+              onClick={cambiarSede}
+              className="shrink-0 rounded-lg px-2 py-1 text-xs font-medium text-slate-500 hover:bg-slate-100 hover:text-crc-600"
+              title="Volver al selector de sede"
+            >
+              Cambiar de sede
+            </button>
           </div>
           <div className="flex items-center gap-2">
             <button

@@ -6,8 +6,8 @@ import { cuentaRepo } from '../repositories/cuentaRepo'
 
 export const movimientoService = {
   listar(query: MovimientosQuery): MovimientoVista[] {
-    const { desde, hasta, cuenta, areaId } = query
-    let movimientos = movimientoRepo.listarEntre(desde, hasta)
+    const { sedeId, desde, hasta, cuenta, areaId } = query
+    let movimientos = movimientoRepo.listarEntre(desde, hasta, sedeId)
 
     if (cuenta) {
       movimientos = movimientos.filter((m) => m.cuenta === cuenta)
@@ -18,7 +18,7 @@ export const movimientoService = {
 
     return movimientos
       .map((m) => {
-        const cuentaContable = cuentaRepo.buscarPorCodigo(m.cuenta)
+        const cuentaContable = cuentaRepo.buscarPorCodigo(sedeId, m.cuenta)
         const naturaleza = cuentaContable?.naturaleza ?? naturalezaDeCuenta(m.cuenta)
         return {
           id: m.id,

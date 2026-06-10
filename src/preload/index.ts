@@ -17,18 +17,21 @@ const api: Api = {
     obtener: () => ipcRenderer.invoke(C.config.obtener),
     actualizar: (input) => ipcRenderer.invoke(C.config.actualizar, input)
   },
+  sedes: {
+    listar: () => ipcRenderer.invoke(C.sedes.listar)
+  },
   areas: {
-    listar: () => ipcRenderer.invoke(C.areas.listar),
+    listar: (sedeId) => ipcRenderer.invoke(C.areas.listar, sedeId),
     crear: (input) => ipcRenderer.invoke(C.areas.crear, input),
     actualizar: (input) => ipcRenderer.invoke(C.areas.actualizar, input),
     eliminar: (id) => ipcRenderer.invoke(C.areas.eliminar, id)
   },
   cuentas: {
-    listar: () => ipcRenderer.invoke(C.cuentas.listar),
+    listar: (sedeId) => ipcRenderer.invoke(C.cuentas.listar, sedeId),
     asignarArea: (input) => ipcRenderer.invoke(C.cuentas.asignarArea, input)
   },
   presupuestos: {
-    listarPorAnio: (anio) => ipcRenderer.invoke(C.presupuestos.listarPorAnio, anio),
+    listarPorAnio: (input) => ipcRenderer.invoke(C.presupuestos.listarPorAnio, input),
     guardar: (input) => ipcRenderer.invoke(C.presupuestos.guardar, input),
     eliminar: (id) => ipcRenderer.invoke(C.presupuestos.eliminar, id)
   },

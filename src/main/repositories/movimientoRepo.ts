@@ -6,8 +6,12 @@ export const movimientoRepo = {
     return store.getData().movimientos
   },
 
-  listarEntre(desde: string, hasta: string): Movimiento[] {
-    return store.getData().movimientos.filter((m) => m.fecha >= desde && m.fecha <= hasta)
+  listarEntre(desde: string, hasta: string, sedeId?: string): Movimiento[] {
+    return store
+      .getData()
+      .movimientos.filter(
+        (m) => m.fecha >= desde && m.fecha <= hasta && (!sedeId || m.sedeId === sedeId)
+      )
   },
 
   idsExistentes(): Set<string> {

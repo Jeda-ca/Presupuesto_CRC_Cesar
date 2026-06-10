@@ -8,6 +8,12 @@ export const SEDES_CONOCIDAS: Record<string, string> = {
   '0003': 'Becerril'
 }
 
+export const SEDE_PRINCIPAL = '0001'
+
+export const SEDES_INICIALES: { prefijo: string; nombre: string }[] = Object.entries(
+  SEDES_CONOCIDAS
+).map(([prefijo, nombre]) => ({ prefijo, nombre }))
+
 export function prefijoDeCentroCosto(centroCosto: string): string {
   return centroCosto.trim().split('-')[0]?.trim() ?? ''
 }

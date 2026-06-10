@@ -4,15 +4,16 @@ import type {
   Presupuesto,
   Configuracion,
   Importacion,
-  Naturaleza
+  Naturaleza,
+  Sede
 } from '../domain/types'
 import type {
   CrearAreaInput,
   ActualizarAreaInput,
   AsignarCuentaAreaInput,
   GuardarPresupuestoInput,
+  ListarPresupuestosInput,
   ActualizarConfiguracionInput,
-  PeriodoQuery,
   ResumenQuery,
   DetalleAreaQuery,
   MovimientosQuery,
@@ -187,6 +188,9 @@ export const IPC_CHANNELS = {
     obtener: 'config:obtener',
     actualizar: 'config:actualizar'
   },
+  sedes: {
+    listar: 'sedes:listar'
+  },
   areas: {
     listar: 'areas:listar',
     crear: 'areas:crear',
@@ -239,18 +243,21 @@ export interface Api {
     obtener(): Promise<Result<Configuracion>>
     actualizar(input: ActualizarConfiguracionInput): Promise<Result<Configuracion>>
   }
+  sedes: {
+    listar(): Promise<Result<Sede[]>>
+  }
   areas: {
-    listar(): Promise<Result<Area[]>>
+    listar(sedeId: string): Promise<Result<Area[]>>
     crear(input: CrearAreaInput): Promise<Result<Area>>
     actualizar(input: ActualizarAreaInput): Promise<Result<Area>>
     eliminar(id: string): Promise<Result<void>>
   }
   cuentas: {
-    listar(): Promise<Result<CuentaContable[]>>
+    listar(sedeId: string): Promise<Result<CuentaContable[]>>
     asignarArea(input: AsignarCuentaAreaInput): Promise<Result<CuentaContable>>
   }
   presupuestos: {
-    listarPorAnio(anio: number): Promise<Result<Presupuesto[]>>
+    listarPorAnio(input: ListarPresupuestosInput): Promise<Result<Presupuesto[]>>
     guardar(input: GuardarPresupuestoInput): Promise<Result<Presupuesto>>
     eliminar(id: string): Promise<Result<void>>
   }
@@ -269,6 +276,6 @@ export interface Api {
     listar(query: MovimientosQuery): Promise<Result<MovimientoVista[]>>
   }
   reporte: {
-    generarPdf(query: PeriodoQuery): Promise<Result<{ ruta: string } | null>>
+    generarPdf(query: ResumenQuery): Promise<Result<{ ruta: string } | null>>
   }
 }

@@ -24,6 +24,7 @@ function Dato({ etiqueta, valor }: { etiqueta: string; valor: string }): JSX.Ele
 export function ImportarPage(): JSX.Element {
   const notificar = useAppStore((s) => s.notificar)
   const refrescarWorkspace = useAppStore((s) => s.refrescarWorkspace)
+  const refrescarSedes = useAppStore((s) => s.refrescarSedes)
   const [preview, setPreview] = useState<PreviewImportacion | null>(null)
   const [sedesSel, setSedesSel] = useState<string[]>([])
   const [historial, setHistorial] = useState<Importacion[]>([])
@@ -81,6 +82,7 @@ export function ImportarPage(): JSX.Element {
       setPreview(null)
       await cargarHistorial()
       await refrescarWorkspace()
+      await refrescarSedes()
     } catch (e) {
       notificar('error', (e as Error).message)
     } finally {

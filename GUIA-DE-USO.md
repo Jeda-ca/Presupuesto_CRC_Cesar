@@ -34,11 +34,19 @@ La aplicación es **portable**: es un único archivo `Presupuesto CRC Cesar-…-
 
 | Término | Significado |
 |---|---|
-| **Cuenta contable** | Cada código que viene de Siimed (ej. `41351503 VENTA VACUNAS`). Se crean solas al importar. |
-| **Área** | Agrupación de cuentas que usted define (ej. "Vacunación" reúne varias cuentas). Es donde se fija el presupuesto. |
-| **Presupuesto** | Lo planeado para un año, repartido por mes. Puede definirse por área y, opcionalmente, por cuenta. |
-| **Ejecutado** | Lo realmente registrado en Siimed en el período (lo que entró o se gastó). |
+| **Sede** | Valledupar, Aguachica o Becerril. **Cada sede maneja sus propias áreas, cuentas y presupuestos de forma independiente.** Al abrir la app usted elige con cuál trabajar. |
+| **Cuenta contable** | Cada código que viene de Siimed (ej. `41351503 VENTA VACUNAS`). Se crean solas al importar, en la sede a la que pertenecen sus movimientos. |
+| **Área** | Agrupación de cuentas que usted define dentro de una sede (ej. "Vacunación" en Valledupar). Es donde se fija el presupuesto. |
+| **Presupuesto** | Lo planeado para un año, repartido por mes, propio de cada sede. Puede definirse por área y, opcionalmente, por cuenta. |
+| **Ejecutado** | Lo realmente registrado en Siimed en el período (lo que entró o se gastó) en la sede activa. |
 | **Naturaleza** | Si el área/cuenta es de **Ingreso**, **Gasto** o **Costo**. Determina cómo se calcula la ejecución. |
+
+### Trabajo por sedes
+
+- **Al abrir la aplicación** aparece la pantalla de selección de sede. Elija una para entrar; la última usada queda resaltada.
+- Dentro de la app, la barra superior muestra la sede activa y el botón **"Cambiar de sede"** para volver al selector sin cerrar.
+- Todo lo que ve y edita (dashboard, áreas, presupuestos, detalle, informes) pertenece **solo a la sede activa**. Una misma cuenta (ej. `41351503`) puede estar en áreas distintas y con presupuestos distintos en cada sede.
+- **La importación es una sola para todas las sedes:** al cargar el archivo de Siimed, cada movimiento queda asignado automáticamente a su sede según el prefijo del centro de costo (0001 Valledupar, 0002 Aguachica, 0003 Becerril).
 
 ---
 
@@ -46,11 +54,11 @@ La aplicación es **portable**: es un único archivo `Presupuesto CRC Cesar-…-
 
 ```
 1) Exportar el reporte desde Siimed
-2) Importar el archivo a la herramienta
-3) Crear las áreas y asignarles sus cuentas
-4) Definir el presupuesto de cada área
-5) Revisar el Dashboard y el Detalle
-6) Generar el informe PDF para la junta
+2) Importar el archivo (los movimientos se reparten solos por sede)
+3) Entrar a cada sede y crear sus áreas con sus cuentas
+4) Definir el presupuesto de cada área (por sede)
+5) Revisar el Dashboard y el Detalle de la sede
+6) Generar el informe PDF de la sede para la junta
 ```
 
 La primera vez se hace todo; en adelante, normalmente solo repetirá los pasos 2 (importar el nuevo período) y 5–6.

@@ -2,15 +2,24 @@ import type { Presupuesto, AmbitoPresupuesto } from '@shared/domain/types'
 import { store } from '../infra/store'
 
 export const presupuestoRepo = {
-  listarPorAnio(anio: number): Presupuesto[] {
-    return store.getData().presupuestos.filter((p) => p.anio === anio)
+  listarPorAnio(sedeId: string, anio: number): Presupuesto[] {
+    return store.getData().presupuestos.filter((p) => p.sedeId === sedeId && p.anio === anio)
   },
 
-  buscar(ambito: AmbitoPresupuesto, referenciaId: string, anio: number): Presupuesto | undefined {
+  buscar(
+    sedeId: string,
+    ambito: AmbitoPresupuesto,
+    referenciaId: string,
+    anio: number
+  ): Presupuesto | undefined {
     return store
       .getData()
       .presupuestos.find(
-        (p) => p.ambito === ambito && p.referenciaId === referenciaId && p.anio === anio
+        (p) =>
+          p.sedeId === sedeId &&
+          p.ambito === ambito &&
+          p.referenciaId === referenciaId &&
+          p.anio === anio
       )
   },
 

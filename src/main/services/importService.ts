@@ -9,10 +9,11 @@ import type {
   SedeImportacion
 } from '@shared/ipc/contract'
 import { claseDeCuenta, naturalezaDeCuenta } from '@shared/domain/puc'
-import { prefijoDeCentroCosto, nombreSede } from '@shared/domain/sedes'
+import { prefijoDeCentroCosto, nombreSede, SEDE_PRINCIPAL } from '@shared/domain/sedes'
 import { leerMatriz } from '../lib/lectorArchivo'
 import { parsearLibroAuxiliar, type ResultadoParseo } from '../lib/siimedParser'
 import { cuentaRepo } from '../repositories/cuentaRepo'
+import { sedeRepo } from '../repositories/sedeRepo'
 import { movimientoRepo } from '../repositories/movimientoRepo'
 import { importacionRepo } from '../repositories/importacionRepo'
 import { nuevoId, hashEstable } from '../lib/id'
@@ -29,6 +30,10 @@ function idMovimiento(comprobante: string, cuenta: string): string {
   return hashEstable(comprobante, '::', cuenta)
 }
 
+function sedeDeCentroCosto(centroCosto: string): string {
+  return prefijoDeCentroCosto(centroCosto) || SEDE_PRINCIPAL
+}
+
 export const importService = {
   previsualizar(ruta: string): PreviewImportacion {
     const buffer = readFileSync(ruta)
@@ -43,19 +48,27 @@ export const importService = {
       else nuevos++
     }
 
+    const sedesPorCuenta = new Map<string, Set<string>>()
+    const movsPorSede = new Map<string, number>()
+    for (const mov of parseo.movimientos) {
+      const prefijo = sedeDeCentroCosto(mov.centroCosto)
+      movsPorSede.set(prefijo, (movsPorSede.get(prefijo) ?? 0) + 1)
+      const set = sedesPorCuenta.get(mov.cuenta) ?? new Set<string>()
+      set.add(prefijo)
+      sedesPorCuenta.set(mov.cuenta, set)
+    }
+
     const cuentasNuevas: CuentaNueva[] = parseo.cuentas
-      .filter((c) => !cuentaRepo.buscarPorCodigo(c.codigo))
+      .filter((c) =>
+        [...(sedesPorCuenta.get(c.codigo) ?? [])].some(
+          (sedeId) => !cuentaRepo.buscarPorCodigo(sedeId, c.codigo)
+        )
+      )
       .map((c) => ({
         codigo: c.codigo,
         descripcion: c.descripcion,
         naturaleza: naturalezaDeCuenta(c.codigo)
       }))
-
-    const movsPorSede = new Map<string, number>()
-    for (const mov of parseo.movimientos) {
-      const prefijo = prefijoDeCentroCosto(mov.centroCosto)
-      movsPorSede.set(prefijo, (movsPorSede.get(prefijo) ?? 0) + 1)
-    }
     const sedes: SedeImportacion[] = [...movsPorSede.entries()]
       .map(([prefijo, movimientos]) => ({ prefijo, nombre: nombreSede(prefijo), movimientos }))
       .sort((a, b) => a.prefijo.localeCompare(b.prefijo))
@@ -100,36 +113,52 @@ export const importService = {
 
     const filtroSedes = sedes && sedes.length > 0 ? new Set(sedes) : null
     const movimientosAImportar = filtroSedes
-      ? parseo.movimientos.filter((m) => filtroSedes.has(prefijoDeCentroCosto(m.centroCosto)))
+      ? parseo.movimientos.filter((m) => filtroSedes.has(sedeDeCentroCosto(m.centroCosto)))
       : parseo.movimientos
     if (movimientosAImportar.length === 0) {
       throw new Error('No hay movimientos para las sedes seleccionadas.')
     }
 
     const importacionId = nuevoId()
-    const cuentasUsadas = new Set(movimientosAImportar.map((m) => m.cuenta))
+
+    const cuentasPorSede = new Map<string, Set<string>>()
+    for (const m of movimientosAImportar) {
+      const sedeId = sedeDeCentroCosto(m.centroCosto)
+      const set = cuentasPorSede.get(sedeId) ?? new Set<string>()
+      set.add(m.cuenta)
+      cuentasPorSede.set(sedeId, set)
+    }
+
+    const descripcionPorCodigo = new Map(parseo.cuentas.map((c) => [c.codigo, c.descripcion]))
     let cuentasCreadas = 0
-    for (const c of parseo.cuentas) {
-      if (!cuentasUsadas.has(c.codigo)) continue
-      const existente = cuentaRepo.buscarPorCodigo(c.codigo)
-      if (!existente) {
-        const cuenta: CuentaContable = {
-          codigo: c.codigo,
-          descripcion: c.descripcion,
-          clase: claseDeCuenta(c.codigo),
-          naturaleza: naturalezaDeCuenta(c.codigo),
-          areaId: null,
-          activa: true
+    for (const [sedeId, codigos] of cuentasPorSede) {
+      if (!sedeRepo.buscar(sedeId)) {
+        sedeRepo.upsert({ prefijo: sedeId, nombre: nombreSede(sedeId) })
+      }
+      for (const codigo of codigos) {
+        const descripcion = descripcionPorCodigo.get(codigo) ?? ''
+        const existente = cuentaRepo.buscarPorCodigo(sedeId, codigo)
+        if (!existente) {
+          const cuenta: CuentaContable = {
+            sedeId,
+            codigo,
+            descripcion,
+            clase: claseDeCuenta(codigo),
+            naturaleza: naturalezaDeCuenta(codigo),
+            areaId: null,
+            activa: true
+          }
+          cuentaRepo.upsert(cuenta)
+          cuentasCreadas++
+        } else if (!existente.descripcion && descripcion) {
+          cuentaRepo.upsert({ ...existente, descripcion })
         }
-        cuentaRepo.upsert(cuenta)
-        cuentasCreadas++
-      } else if (!existente.descripcion && c.descripcion) {
-        cuentaRepo.upsert({ ...existente, descripcion: c.descripcion })
       }
     }
 
     const movimientos: Movimiento[] = movimientosAImportar.map((m) => ({
       id: idMovimiento(m.comprobante, m.cuenta),
+      sedeId: sedeDeCentroCosto(m.centroCosto),
       cuenta: m.cuenta,
       nit: m.nit,
       tercero: m.tercero,
@@ -144,9 +173,7 @@ export const importService = {
 
     const { insertados, actualizados } = movimientoRepo.upsertLote(movimientos)
 
-    const sedesImportadas = filtroSedes
-      ? [...filtroSedes].sort()
-      : [...new Set(movimientosAImportar.map((m) => prefijoDeCentroCosto(m.centroCosto)))].sort()
+    const sedesImportadas = [...cuentasPorSede.keys()].sort()
 
     const importacion: Importacion = {
       id: importacionId,

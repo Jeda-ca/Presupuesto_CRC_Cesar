@@ -3,14 +3,15 @@ import { writeFile, unlink, readFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
-import type { PeriodoQuery } from '@shared/schemas/dto'
+import type { ResumenQuery } from '@shared/schemas/dto'
+import { nombreSede } from '@shared/domain/sedes'
 import { dashboardService } from './dashboardService'
 import { construirInformeHTML } from '../lib/informeHtml'
 
 const ENTIDAD = 'Cruz Roja Colombiana Seccional Cesar'
 
-function nombreSugerido(query: PeriodoQuery): string {
-  return `Informe-Presupuesto-${query.desde}_a_${query.hasta}.pdf`
+function nombreSugerido(query: ResumenQuery): string {
+  return `Informe-${nombreSede(query.sedeId)}-${query.desde}_a_${query.hasta}.pdf`
 }
 
 /**
@@ -55,7 +56,7 @@ async function renderizarPDF(html: string): Promise<Buffer> {
 }
 
 export const reporteService = {
-  async generarPdf(query: PeriodoQuery): Promise<{ ruta: string } | null> {
+  async generarPdf(query: ResumenQuery): Promise<{ ruta: string } | null> {
     const ventanaActiva =
       BrowserWindow.getFocusedWindow() ?? BrowserWindow.getAllWindows()[0] ?? null
 
@@ -70,6 +71,7 @@ export const reporteService = {
     const html = construirInformeHTML(resumen, {
       titulo: 'Informe de ejecución presupuestal',
       entidad: ENTIDAD,
+      sede: nombreSede(query.sedeId),
       generadoEn: new Date().toLocaleString('es-CO'),
       logoDataUri: await logoComoDataUri()
     })

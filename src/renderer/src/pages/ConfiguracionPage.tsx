@@ -23,7 +23,8 @@ export function ConfiguracionPage(): JSX.Element {
         api.config.actualizar({
           umbralRiesgo: riesgo / 100,
           umbralBajoUso: bajoUso / 100,
-          anioActivo: anio
+          anioActivo: anio,
+          sedeActiva: config?.sedeActiva ?? null
         })
       )
       setConfig(actualizada)

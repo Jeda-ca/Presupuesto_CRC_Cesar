@@ -3,26 +3,11 @@ import { existsSync } from 'node:fs'
 import { dirname, basename } from 'node:path'
 import type { StoreData } from '@shared/domain/types'
 import type { WorkspaceEstado } from '@shared/ipc/contract'
-import { storeDataSchema, STORE_VERSION } from '@shared/schemas/models'
+import { storeDataSchema } from '@shared/schemas/models'
 import { defaultWorkspacePath } from './paths'
+import { storeVacio, migrar } from './migraciones'
 
 const AUTOSAVE_DELAY_MS = 800
-
-function storeVacio(): StoreData {
-  return {
-    version: STORE_VERSION,
-    areas: [],
-    cuentas: [],
-    presupuestos: [],
-    movimientos: [],
-    importaciones: [],
-    configuracion: {
-      umbralRiesgo: 0.85,
-      umbralBajoUso: 0.3,
-      anioActivo: new Date().getFullYear()
-    }
-  }
-}
 
 class Store {
   private data: StoreData = storeVacio()
@@ -108,15 +93,13 @@ class Store {
   private async cargarDesde(ruta: string): Promise<void> {
     const crudo = await readFile(ruta, 'utf-8')
     const json = JSON.parse(crudo)
-    const data = storeDataSchema.parse(this.migrar(json))
+    const migrado = migrar(json)
+    const data = storeDataSchema.parse(migrado)
     this.data = data
     this.ruta = ruta
     this.modificadoEn = new Date().toISOString()
-    this.dirty = false
-  }
-
-  private migrar(json: unknown): unknown {
-    return json
+    this.dirty = migrado !== json
+    if (this.dirty) this.programarAutosave()
   }
 
   private async persistir(ruta: string): Promise<void> {

@@ -11,11 +11,12 @@ const PALETA = ['#d7261e', '#ea580c', '#ca8a04', '#16a34a', '#0891b2', '#2563eb'
 interface Props {
   abierto: boolean
   area: Area | null
+  sedeId: string
   onCerrar: () => void
   onGuardado: () => void
 }
 
-export function AreaFormModal({ abierto, area, onCerrar, onGuardado }: Props): JSX.Element {
+export function AreaFormModal({ abierto, area, sedeId, onCerrar, onGuardado }: Props): JSX.Element {
   const notificar = useAppStore((s) => s.notificar)
   const [nombre, setNombre] = useState('')
   const [descripcion, setDescripcion] = useState('')
@@ -42,7 +43,7 @@ export function AreaFormModal({ abierto, area, onCerrar, onGuardado }: Props): J
         await unwrap(api.areas.actualizar({ id: area.id, nombre, descripcion, naturaleza, color }))
         notificar('exito', 'Área actualizada')
       } else {
-        await unwrap(api.areas.crear({ nombre, descripcion, naturaleza, color }))
+        await unwrap(api.areas.crear({ sedeId, nombre, descripcion, naturaleza, color }))
         notificar('exito', 'Área creada')
       }
       onGuardado()

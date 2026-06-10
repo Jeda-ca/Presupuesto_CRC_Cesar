@@ -42,6 +42,7 @@ export function DashboardPage(): JSX.Element {
   const anio = useAppStore((s) => s.config?.anioActivo ?? new Date().getFullYear())
   const notificar = useAppStore((s) => s.notificar)
   const irA = useAppStore((s) => s.irA)
+  const sedeActiva = useAppStore((s) => s.sedeActiva)
   const [periodo, setPeriodo] = useState<Periodo>(rangoAnio(anio))
   const [naturaleza, setNaturaleza] = useState<FiltroNaturaleza>('todas')
   const [data, setData] = useState<DashboardResumen | null>(null)
@@ -50,11 +51,13 @@ export function DashboardPage(): JSX.Element {
   useEffect(() => setPeriodo(rangoAnio(anio)), [anio])
 
   useEffect(() => {
+    if (!sedeActiva) return
     let activo = true
     setCargando(true)
     unwrap(
       api.dashboard.resumen({
         ...periodo,
+        sedeId: sedeActiva,
         naturaleza: naturaleza === 'todas' ? null : naturaleza
       })
     )
@@ -65,7 +68,7 @@ export function DashboardPage(): JSX.Element {
       activo = false
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [periodo, naturaleza])
+  }, [periodo, naturaleza, sedeActiva])
 
   const barData =
     data?.areas

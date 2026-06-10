@@ -24,16 +24,16 @@ import {
 
 export const dashboardService = {
   resumen(query: ResumenQuery): DashboardResumen {
-    const { desde, hasta } = query
+    const { desde, hasta, sedeId } = query
     const filtro = query.naturaleza ?? null
     const anio = Number.parseInt(desde.slice(0, 4), 10) || new Date().getFullYear()
     const cfg = configRepo.obtener()
 
-    const cuentas = cuentaRepo.listar()
+    const cuentas = cuentaRepo.listar(sedeId)
     const naturalezaPorCuenta = new Map<string, CuentaContable['naturaleza']>()
     for (const c of cuentas) naturalezaPorCuenta.set(c.codigo, c.naturaleza)
 
-    const movimientos = movimientoRepo.listarEntre(desde, hasta)
+    const movimientos = movimientoRepo.listarEntre(desde, hasta, sedeId)
     const ejecPorCuenta = new Map<string, number>()
     for (const mov of movimientos) {
       const naturaleza = naturalezaPorCuenta.get(mov.cuenta) ?? naturalezaDeCuenta(mov.cuenta)
@@ -41,7 +41,7 @@ export const dashboardService = {
       ejecPorCuenta.set(mov.cuenta, (ejecPorCuenta.get(mov.cuenta) ?? 0) + valor)
     }
 
-    const presupuestos = presupuestoRepo.listarPorAnio(anio)
+    const presupuestos = presupuestoRepo.listarPorAnio(sedeId, anio)
     const presArea = new Map<string, Presupuesto>()
     const presCuenta = new Map<string, Presupuesto>()
     for (const p of presupuestos) {
@@ -59,7 +59,7 @@ export const dashboardService = {
     }
 
     const areasFiltradas = areaRepo
-      .listar()
+      .listar(sedeId)
       .filter((area) => !filtro || area.naturaleza === filtro)
 
     // Conjunto de cuentas que pertenecen a las áreas mostradas (para la serie mensual)
@@ -171,13 +171,13 @@ export const dashboardService = {
     const cuentas = cuentaRepo.listarPorArea(areaId)
     const codigos = new Set(cuentas.map((c) => c.codigo))
 
-    const presupuestos = presupuestoRepo.listarPorAnio(anio)
+    const presupuestos = presupuestoRepo.listarPorAnio(area.sedeId, anio)
     const presArea = presupuestos.find((p) => p.ambito === 'area' && p.referenciaId === areaId)
     const presCuenta = new Map<string, Presupuesto>()
     for (const p of presupuestos) if (p.ambito === 'cuenta') presCuenta.set(p.referenciaId, p)
 
     const movimientos = movimientoRepo
-      .listarEntre(desde, hasta)
+      .listarEntre(desde, hasta, area.sedeId)
       .filter((m) => codigos.has(m.cuenta))
 
     const ejecPorCuenta = new Map<string, number>()

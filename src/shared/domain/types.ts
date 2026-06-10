@@ -1,6 +1,7 @@
 import type { z } from 'zod'
 import type {
   naturalezaSchema,
+  sedeSchema,
   cuentaContableSchema,
   areaSchema,
   ambitoPresupuestoSchema,
@@ -12,6 +13,7 @@ import type {
 } from '../schemas/models'
 
 export type Naturaleza = z.infer<typeof naturalezaSchema>
+export type Sede = z.infer<typeof sedeSchema>
 export type CuentaContable = z.infer<typeof cuentaContableSchema>
 export type Area = z.infer<typeof areaSchema>
 export type AmbitoPresupuesto = z.infer<typeof ambitoPresupuestoSchema>

@@ -51,6 +51,7 @@ function pct(fraccion: number): string {
 export interface InformeMeta {
   titulo: string
   entidad: string
+  sede?: string
   generadoEn: string
   logoDataUri?: string
 }
@@ -176,7 +177,7 @@ export function construirInformeHTML(resumen: DashboardResumen, meta: InformeMet
     }</div>
     <div>
       <h1>${escapar(meta.titulo)}</h1>
-      <p>${escapar(meta.entidad)}</p>
+      <p>${escapar(meta.entidad)}${meta.sede ? ` · Sede ${escapar(meta.sede)}` : ''}</p>
     </div>
     <div class="periodo">
       <div>Período: ${fechaLarga(resumen.desde)} a ${fechaLarga(resumen.hasta)}</div>
